@@ -7,8 +7,8 @@ class Timer {
     return beacon(delay).take(repetitions);
 
   public static function beacon(delay : Int) {
-    return new Producer(function(subscriber : Subscriber<Nil>) {
-      var id = thx.core.Timer.repeat(subscriber.bind(Pulses.nil), delay);
+    return new Producer(function(signer : Signer<Nil>) {
+      var id = thx.core.Timer.repeat(signer.bind(Pulses.nil), delay);
       return function() thx.core.Timer.clear(id);
     });
   }
@@ -20,8 +20,8 @@ class Timer {
     return sequenceNil(repetitions, delay, function(_) return build());
 
   public static function sequencei<T>(repetitions : Int, delay : Int, build : Int -> T)
-    return sequence(repetitions, delay, (function() {
+    return sequence(repetitions, delay, {
       var i = 0;
-      return function() return build(i++);
-    })());
+      function() return build(i++);
+    });
 }
