@@ -1,0 +1,3 @@
+-D thx_stream
+-lib thx.core
+-lib thx.promise

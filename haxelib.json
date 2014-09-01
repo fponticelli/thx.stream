@@ -1,0 +1,15 @@
+{
+  "name": "thx.stream",
+  "url": "https://github.com/fponticelli/thx.stream",
+  "license": "MIT",
+  "classPath": "src",
+  "tags": ["thx", "stream", "async", "cross"],
+  "description": "Streams for Haxe",
+  "releasenote": "first release",
+  "version": "0.1.0",
+  "contributors": ["fponticelli"],
+  "dependencies": {
+    "thx.core": "0.5.2",
+    "thx.promise": "0.2.0"
+  }
+}
