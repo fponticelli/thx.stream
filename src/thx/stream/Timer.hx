@@ -13,14 +13,15 @@ class Timer {
     });
   }
 
+  public static function sequenceNil<T>(repetitions : Int, delay : Int, build : Nil -> T)
+    return repeat(repetitions, delay).mapValue(build);
+
   public static function sequence<T>(repetitions : Int, delay : Int, build : Void -> T)
-    return repeat(repetitions, delay).mapValue(function(_) {
-      return build();
-    });
+    return sequenceNil(repetitions, delay, function(_) return build());
 
   public static function sequencei<T>(repetitions : Int, delay : Int, build : Int -> T)
-    return repeat(repetitions, delay).mapValue((function() {
+    return sequence(repetitions, delay, (function() {
       var i = 0;
-      return function(_) return build(i++);
+      return function() return build(i++);
     })());
 }
