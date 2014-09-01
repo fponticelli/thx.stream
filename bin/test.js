@@ -785,6 +785,12 @@ thx.stream.TestStream.prototype = {
 			};
 		})()).subscribe(thx.stream.Asserter.create([1,2,3],done));
 	}
+	,testSequencei: function() {
+		var done = utest.Assert.createAsync(null,1000);
+		thx.stream.Timer.sequencei(3,10,function(i) {
+			return i * 2;
+		}).subscribe(thx.stream.Asserter.create([0,2,4],done));
+	}
 	,__class__: thx.stream.TestStream
 };
 thx.stream.Asserter = function(expectations,done,debug) {
@@ -805,10 +811,10 @@ thx.stream.Asserter.prototype = {
 	,done: null
 	,debug: null
 	,listener: function(test) {
-		if(this.debug) haxe.Log.trace(test,{ fileName : "TestStream.hx", lineNumber : 41, className : "thx.stream.Asserter", methodName : "listener"});
-		if(this.expectations.length == 0) utest.Assert.fail("no more expectations but received pulse " + Std.string(test),{ fileName : "TestStream.hx", lineNumber : 43, className : "thx.stream.Asserter", methodName : "listener"});
+		if(this.debug) haxe.Log.trace(test,{ fileName : "TestStream.hx", lineNumber : 46, className : "thx.stream.Asserter", methodName : "listener"});
+		if(this.expectations.length == 0) utest.Assert.fail("no more expectations but received pulse " + Std.string(test),{ fileName : "TestStream.hx", lineNumber : 48, className : "thx.stream.Asserter", methodName : "listener"});
 		var exp = this.expectations.shift();
-		utest.Assert.same(exp,test,null,null,{ fileName : "TestStream.hx", lineNumber : 45, className : "thx.stream.Asserter", methodName : "listener"});
+		utest.Assert.same(exp,test,null,null,{ fileName : "TestStream.hx", lineNumber : 50, className : "thx.stream.Asserter", methodName : "listener"});
 		switch(test[1]) {
 		case 1:case 2:
 			this.done();
@@ -839,6 +845,14 @@ thx.stream.Timer.sequence = function(repetitions,delay,build) {
 	return thx.stream.Timer.repeat(repetitions,delay).mapValue(function(_) {
 		return build();
 	});
+};
+thx.stream.Timer.sequencei = function(repetitions,delay,build) {
+	return thx.stream.Timer.repeat(repetitions,delay).mapValue((function() {
+		var i = 0;
+		return function(_) {
+			return build(i++);
+		};
+	})());
 };
 var utest = {};
 utest.Assert = function() { };

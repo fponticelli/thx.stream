@@ -22,6 +22,11 @@ class TestStream {
       return function () return ++i;
     })()).subscribe(Asserter.create([1,2,3], done));
   }
+
+  public function testSequencei() {
+    var done = Assert.createAsync(1000);
+    Timer.sequencei(3, 10, function(i) return i * 2).subscribe(Asserter.create([0,2,4], done));
+  }
 }
 
 class Asserter<T> {
