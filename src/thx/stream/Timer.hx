@@ -24,4 +24,7 @@ class Timer {
       var i = 0;
       function() return build(i++);
     });
+
+  public static function ofArray<T>(arr : Array<T>, delay : Int)
+    return sequencei(arr.length, delay, function(i) return arr[i]);
 }
