@@ -2,16 +2,17 @@ package thx.stream;
 
 import thx.core.Nil;
 
+import thx.stream.Producer;
+
 class Timer {
   public static function repeat(repetitions : Int, delay : Int)
     return beacon(delay).take(repetitions);
 
-  public static function beacon(delay : Int) {
+  public static function beacon(delay : Int)
     return new Producer(function(signer : Signer<Nil>) {
       var id = thx.core.Timer.repeat(signer.bind(Pulses.nil), delay);
       return function() thx.core.Timer.clear(id);
-    });
-  }
+    }, "beacon");
 
   public static function sequenceNil<T>(repetitions : Int, delay : Int, build : Nil -> T)
     return repeat(repetitions, delay).mapValue(build);

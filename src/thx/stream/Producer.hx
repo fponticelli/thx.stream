@@ -7,23 +7,25 @@ import haxe.ds.Option;
 
 class FlowProducer<T> extends Producer<T> {
   override public function sign(signer : Signer<T>) : Void -> Void {
-    var cancel = handler(signer);
+    var cancel = init(signer);
     return function() {
-      var c = cancel;
-      cancel = function() {};
-      c();
+      trace("CANCEL FLOW " + name);
+      cancel();
     };
   }
 }
 
 class Producer<T> {
-  var handler : Signer<T> -> (Void -> Void);
-  public function new(handler : Signer<T> -> (Void -> Void)) {
-    this.handler = handler;
+  var init : Signer<T> -> (Void -> Void);
+  var name : String;
+  public function new(init : Signer<T> -> (Void -> Void), name : String) {
+    this.init = init;
+    this.name = name;
   }
   public function sign(signer : Signer<T>) : Void -> Void {
-    var _cancel = handler(signer),
+    var _cancel = init(signer),
         cancel  = function() {
+          trace("CANCEL FINAL " + name);
           _cancel();
           signer(End(true));
           signer = function(_) {};
@@ -41,9 +43,20 @@ class Producer<T> {
       failure = null == failure ? function(_) {} : failure;
       end     = null == end     ? function(_) {} : end;
       function(r) switch r {
-        case Pulse(v):   pulse(v);
-        case Failure(e): failure(e);
-        case End(c):     end(c);
+        case Pulse(v):
+          pulse(v);
+        case Failure(e):
+          pulse   = function(_) {};
+          end     = function(_) {};
+          var f = failure;
+          failure = function(_) {};
+          f(e);
+        case End(c):
+          pulse   = function(_) {};
+          failure = function(_) {};
+          var e = end;
+          end     = function(_) {};
+          e(c);
       };
     });
 
@@ -51,21 +64,25 @@ class Producer<T> {
     if(number <= 0) throw '"take" argument should be a positive non zero value';
     return new FlowProducer(function(handler) {
       var counter  = 0,
-          cancel   = function() {};
+          cancel   = null;
       return cancel = subscribe(
         function(v) {
           handler(Pulse(v));
           if(++counter == number)
             cancel();
         },
-        function(c : Bool) handler(End(counter == number ? false : c)));
-    });
+        function(c : Bool) {
+          handler(End(counter == number ? false : c));
+          handler = function(_) {};
+        }
+      );
+    }, "take");
   }
 
   public function mapValue<TOut>(transform : T -> TOut)
-    return map(function(t) {
-      return Promise.value(transform(t));
-    });
+    return map(function(t)
+      return Promise.value(transform(t))
+    );
 
   public function map<TOut>(transform : T -> Promise<TOut>)
     return new FlowProducer(function(handler) {
@@ -79,9 +96,19 @@ class Producer<T> {
                 handler(Failure(e));
             }
           });
-        case Failure(e): handler(Failure(e));
-        case End(c):     handler(End(c));
+        case Failure(e):
+          handler(Failure(e));
+          handler = function(_){};
+        case End(c):
+          handler(End(c));
+          handler = function(_){};
       });
+    }, "map");
+
+  public function audit(handler : T -> Void) : Producer<T>
+    return mapValue(function(v) {
+      handler(v);
+      return v;
     });
 
   public function toPromise() : Promise<Array<T>>
@@ -94,7 +121,7 @@ class Producer<T> {
             case Failure(e): reject(e);
             case End(_):     resolve(values);
           })
-      );
+      , "toPromise");
     });
 
   public function filterValue(filterf : T -> Bool)
@@ -103,20 +130,18 @@ class Producer<T> {
   public function filter(filterf : T -> Promise<Bool>)
     return new FlowProducer(function(handler : StreamValue<T> -> Void) {
       return passOn(
-        function(value : T) {
-          filterf(value).then(function(r) {
+        function(value : T)
+          filterf(value).then(function(r)
             switch r {
               case Success(p):
                 if(p)
                   handler(Pulse(value));
               case Failure(e):
                 handler(Failure(e));
-            }
-          });
-        },
+            }),
         handler
       );
-    });
+    }, "filter");
   public function toOption() : Producer<Option<T>>
     return mapValue(function(v) return null == v ? None : Some(v));
   public function toNil() : Producer<Nil>
@@ -134,10 +159,11 @@ class Producer<T> {
   }
 
   public function withValue(?expected : T) : Producer<T>
-    if(null == expected)
-      return filterValue(function(v : T) return v != null)
-    else
-      return filterValue(function(v : T) return v == expected);
+    return filterValue(
+      null == expected ?
+        function(v : T) return v != null :
+        function(v : T) return v == expected
+    );
 
   public function concat(other : Producer<T>) : Producer<T>
     return new FlowProducer(function(handler) {
@@ -149,9 +175,24 @@ class Producer<T> {
         }, handler);
       return function() {
         cancel();
-        cancel = function(){ trace("RECANCEL");};
-      }
-    });
+        cancel = function(){};
+      };
+    }, "concat");
+
+  public function merge(other : Producer<T>) : Producer<T> {
+    return new FlowProducer(function(handler) {
+      var cancel1 = null, cancel2 = null,
+          cancel  = function() {
+            cancel1();
+            cancel1 = function(){};
+            cancel2();
+            cancel2 = function(){};
+          };
+      cancel1 = this.passOn(handler);
+      cancel2 = new FlowProducer(other.init, "merge-other").passOn(handler);
+      return cancel;
+    }, "merge");
+  }
 // blend
 // keep
 // debounce
@@ -246,12 +287,18 @@ class StringProducer {
     return new FlowProducer(function(handler) {
       arr.map(function(v) handler(Pulse(v)));
       return function(){};
-    });
+    }, "ofArray");
 
   function passOn(?pulse : T -> Void, ?failure : Error -> Void, ?end : Bool -> Void, handler : StreamValue<T> -> Void)
     return subscribe(
-        null != pulse   ? pulse   : function(v : T)     handler(Pulse(v)),
-        null != failure ? failure : function(e : Error) handler(Failure(e)),
-        null != end     ? end     : function(c : Bool)  handler(End(c))
+        null != pulse ? pulse : function(v : T) handler(Pulse(v)),
+        null != failure ? failure : function(e : Error) {
+          handler(Failure(e));
+          handler = function(_) {};
+        },
+        null != end ? end : function(c : Bool) {
+          handler(End(c));
+          handler = function(_) {};
+        }
       );
 }

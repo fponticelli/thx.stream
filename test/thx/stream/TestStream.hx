@@ -8,7 +8,7 @@ import thx.promise.Promise;
 
 class TestStream {
   public function new() {}
-
+/*
   public function testBasic() {
     var done = Assert.createAsync(1000);
     Timer.repeat(3, 10).sign(Asserter.create([nil, nil, nil], done));
@@ -55,4 +55,64 @@ class TestStream {
           .sign(Asserter.create([], done));
     cancel();
   }
+
+  public function testCancelConcatOnFirstSegment() {
+    var done   = Assert.createAsync(1000),
+        cancel = null;
+    cancel = Timer.ofArray([1,2,3], 10)
+      .concat(Timer.ofArray([4,5,6], 10))
+      .audit(function(v) {
+        if(v == 2)
+          cancel();
+      })
+      .sign(Asserter.create([1], done));
+  }
+
+  public function testCancelConcatOnSecondSegment() {
+    var done   = Assert.createAsync(1000),
+        cancel = null;
+    cancel = Timer.ofArray([1,2,3], 10)
+      .concat(Timer.ofArray([4,5,6], 10))
+      .audit(function(v) {
+        if(v == 5)
+          cancel();
+      })
+      .sign(Asserter.create([1,2,3,4], done));
+  }
+*/
+  public function testCancelMerge() {
+    var done   = Assert.createAsync(1000),
+        cancel = null;
+    cancel = Timer.ofArray([1,2,3], 10)
+      .merge(Timer.ofArray([4,5,6], 10))
+      .sign(Asserter.create([], done, true));
+    cancel();
+  }
+/*
+  public function testCancelMergeOnFirst() {
+    var done   = Assert.createAsync(1000),
+        cancel = null;
+    cancel = Timer.ofArray([1,2,3], 10)
+      .merge(Timer.ofArray([4,5,6], 11))
+      .audit(function(v) {
+        trace(v);
+        if(v == 5)
+          cancel();
+      })
+      .sign(Asserter.create([1,4,2], done));
+  }
+
+  public function testCancelMergeOnSecond() {
+    var done   = Assert.createAsync(1000),
+        cancel = null;
+    cancel = Timer.ofArray([1,2,3], 10)
+      .merge(Timer.ofArray([4,5,6], 11))
+      .audit(function(v) {
+        trace(v);
+        if(v == 2)
+          cancel();
+      })
+      .sign(Asserter.create([1,4], done));
+  }
+*/
 }
