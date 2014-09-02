@@ -6,7 +6,7 @@ import thx.promise.Promise;
 
 class Asserter<T> {
   public static function create<T>(values : Array<T>, done : Void -> Void, debug = false)
-    return new Asserter(values.map(function(v) return Pulse(v)).concat([End]), done, debug).listener;
+    return new Asserter(values.map(function(v) return Pulse(v)).concat([End(false)]), done, debug).listener;
 
   var expectations : Array<StreamValue<T>>;
   var done : Void -> Void;
@@ -18,15 +18,18 @@ class Asserter<T> {
   }
   public function listener(test : StreamValue<T>) {
     if(debug)
-      trace(test);
-    if(expectations.length == 0)
+      trace('${expectations[0]} == $test');
+    if(expectations.length == 0) {
       Assert.fail('no more expectations but received pulse $test');
+      return;
+    }
     var exp = expectations.shift();
-    Assert.same(exp, test);
-    switch test {
-      case End, Failure(_):
+    switch exp {
+      case End(_):
+        Assert.equals(Type.enumConstructor(exp), Type.enumConstructor(test));
         done();
       case _:
+        Assert.same(exp, test);
     }
   }
 }

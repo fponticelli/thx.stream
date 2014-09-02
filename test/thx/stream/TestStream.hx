@@ -40,4 +40,19 @@ class TestStream {
       .filter(function(v) return Promise.value(v % 2 == 0))
       .sign(Asserter.create([2,4,6], done));
   }
+
+  public function testConcat() {
+    var done = Assert.createAsync(1000);
+    Timer.ofArray([1,2,3], 10)
+      .concat(Timer.ofArray([4,5,6], 10))
+      .sign(Asserter.create([1,2,3,4,5,6], done));
+  }
+
+  public function testCancelConcat() {
+    var done   = Assert.createAsync(1000),
+        cancel = Timer.ofArray([1,2,3], 10)
+          .concat(Timer.ofArray([4,5,6], 10))
+          .sign(Asserter.create([], done));
+    cancel();
+  }
 }

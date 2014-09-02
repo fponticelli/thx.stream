@@ -4,6 +4,6 @@ import thx.core.Error;
 
 enum StreamValue<T> {
   Pulse(value : T);
-  End;
+  End(cancel : Bool);
   Failure(err : Error);
 }

@@ -5,6 +5,17 @@ import thx.core.Nil;
 import thx.promise.Promise;
 import haxe.ds.Option;
 
+class FlowProducer<T> extends Producer<T> {
+  override public function sign(signer : Signer<T>) : Void -> Void {
+    var cancel = handler(signer);
+    return function() {
+      var c = cancel;
+      cancel = function() {};
+      c();
+    };
+  }
+}
+
 class Producer<T> {
   var handler : Signer<T> -> (Void -> Void);
   public function new(handler : Signer<T> -> (Void -> Void)) {
@@ -14,51 +25,50 @@ class Producer<T> {
     var _cancel = handler(signer),
         cancel  = function() {
           _cancel();
-          signer(End);
+          signer(End(true));
+          signer = function(_) {};
         };
     return function() {
       var c = cancel;
       cancel = function() {};
       c();
-    }
+    };
   }
 
-  public function subscribe(?pulse : T -> Void, ?failure : Error -> Void, ?end : Void -> Void) : Void -> Void
+  public function subscribe(?pulse : T -> Void, ?failure : Error -> Void, ?end : Bool -> Void) : Void -> Void
     return sign({
       pulse   = null == pulse   ? function(_) {} : pulse;
       failure = null == failure ? function(_) {} : failure;
-      end     = null == end     ? function( ) {} : end;
+      end     = null == end     ? function(_) {} : end;
       function(r) switch r {
         case Pulse(v):   pulse(v);
         case Failure(e): failure(e);
-        case End:        end();
+        case End(c):     end(c);
       };
     });
 
   public function take(number : Int) {
     if(number <= 0) throw '"take" argument should be a positive non zero value';
-    return new Producer(function(handler) {
+    return new FlowProducer(function(handler) {
       var counter  = 0,
-          cancel   = function() {},
-          counterf = function(v) {
-            handler(v);
-            if(++counter == number)
-              cancel();
-          };
-      return cancel = sign(counterf);
+          cancel   = function() {};
+      return cancel = subscribe(
+        function(v) {
+          handler(Pulse(v));
+          if(++counter == number)
+            cancel();
+        },
+        function(c : Bool) handler(End(counter == number ? false : c)));
     });
   }
 
   public function mapValue<TOut>(transform : T -> TOut)
-    return new Producer(function(handler)
-      return sign(function(r) switch r {
-        case Pulse(v): handler(Pulse(transform(v)));
-        case Failure(e): handler(Failure(e));
-        case End: handler(End);
-      })
-    );
+    return map(function(t) {
+      return Promise.value(transform(t));
+    });
+
   public function map<TOut>(transform : T -> Promise<TOut>)
-    return new Producer(function(handler)
+    return new FlowProducer(function(handler) {
       return sign(function(r) switch r {
         case Pulse(v):
           transform(v).then(function(r) {
@@ -70,38 +80,31 @@ class Producer<T> {
             }
           });
         case Failure(e): handler(Failure(e));
-        case End: handler(End);
-      })
-    );
+        case End(c):     handler(End(c));
+      });
+    });
 
   public function toPromise() : Promise<Array<T>>
     return Promise.create(function(resolve, reject) {
       var values = [];
-      return new Producer(function(handler)
+      return new FlowProducer(function(handler)
         return sign(function(r)
           switch r {
-            case Pulse(v):
-              values.push(v);
-            case Failure(e):
-              reject(e);
-            case End:
-              resolve(values);
+            case Pulse(v):   values.push(v);
+            case Failure(e): reject(e);
+            case End(_):     resolve(values);
           })
       );
     });
 
-  public function filterValue(filter : T -> Bool)
-    return new Producer(function(handler : StreamValue<T> -> Void) {
-      return passOn(
-        function(value : T) if(filter(value)) handler(Pulse(value)),
-        handler
-      );
-    });
-  public function filter(filter : T -> Promise<Bool>)
-    return new Producer(function(handler : StreamValue<T> -> Void) {
+  public function filterValue(filterf : T -> Bool)
+    return filter(function(v : T) return Promise.value(filterf(v)));
+
+  public function filter(filterf : T -> Promise<Bool>)
+    return new FlowProducer(function(handler : StreamValue<T> -> Void) {
       return passOn(
         function(value : T) {
-          filter(value).then(function(r) {
+          filterf(value).then(function(r) {
             switch r {
               case Success(p):
                 if(p)
@@ -136,12 +139,19 @@ class Producer<T> {
     else
       return filterValue(function(v : T) return v == expected);
 
-  function passOn(?pulse : T -> Void, ?failure : Error -> Void, ?end : Void -> Void, handler : StreamValue<T> -> Void)
-    return subscribe(
-        null != pulse   ? pulse   : function(v : T) handler(Pulse(v)),
-        null != failure ? failure : function(e : Error) handler(Failure(e)),
-        null != end     ? end     : function()  handler(End)
-      );
+  public function concat(other : Producer<T>) : Producer<T>
+    return new FlowProducer(function(handler) {
+      var cancel;
+      cancel = passOn(function(c : Bool) {
+          if(c)
+            return handler(End(c));
+          cancel = other.passOn(handler);
+        }, handler);
+      return function() {
+        cancel();
+        cancel = function(){ trace("RECANCEL");};
+      }
+    });
 // blend
 // keep
 // debounce
@@ -149,7 +159,6 @@ class Producer<T> {
 // pair
 // distinct
 // merge
-// concat
 // sync
 // zip
 // previous
@@ -189,7 +198,7 @@ class Producer<T> {
     return producer.map(function(v) return !v);
 
   public static function flatMap<T>(producer : Producer<Array<T>>) : Producer<T> {
-    return new Producer(function(forward : Pulse<T> -> Void) {
+    return new FlowProducer(function(forward : Pulse<T> -> Void) {
       producer.feed(Bus.passOn(
         function(arr : Array<T>) arr.map(function(value) forward(Emit(value))),
         forward
@@ -198,7 +207,7 @@ class Producer<T> {
   }
 
   public static function delayed<T>(producer : Producer<T>, delay : Int) : Producer<T> {
-    return new Producer(function(forward) {
+    return new FlowProducer(function(forward) {
       producer.feed(new Bus(
         function(v)
           Timer.setTimeout(function() forward(Emit(v)), delay),
@@ -213,7 +222,7 @@ class Producer<T> {
 @:access(steamer.Producer)
 class ProducerProducer {
   public static function flatMap<T>(producer : Producer<Producer<T>>) : Producer<T> {
-    return new Producer(function(forward : Pulse<T> -> Void) {
+    return new FlowProducer(function(forward : Pulse<T> -> Void) {
       producer.feed(Bus.passOn(
         function(prod : Producer<T>) {
           prod.feed(Bus.passOn(
@@ -234,8 +243,15 @@ class StringProducer {
 }
 */
   public static function ofArray<T>(arr : Array<T>)
-    return new Producer(function(handler) {
+    return new FlowProducer(function(handler) {
       arr.map(function(v) handler(Pulse(v)));
       return function(){};
     });
+
+  function passOn(?pulse : T -> Void, ?failure : Error -> Void, ?end : Bool -> Void, handler : StreamValue<T> -> Void)
+    return subscribe(
+        null != pulse   ? pulse   : function(v : T)     handler(Pulse(v)),
+        null != failure ? failure : function(e : Error) handler(Failure(e)),
+        null != end     ? end     : function(c : Bool)  handler(End(c))
+      );
 }
