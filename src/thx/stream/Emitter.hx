@@ -67,9 +67,9 @@ class Emitter<T> {
             },
             function(err) stream.fail(err)
           );
-        case Failure(e):   stream.fail(e);
-        case End(true):    stream.cancel();
-        case End(false):   stream.end();
+        case Failure(e):  stream.fail(e);
+        case End(true):   stream.cancel();
+        case End(false):  stream.end();
       }));
     });
 
@@ -77,5 +77,44 @@ class Emitter<T> {
     return takeUntil({
       var counter = 0;
       function(_) return Promise.value(counter++ < count);
+    });
+
+  public function audit(handler : T -> Void) : Emitter<T>
+    return mapValue(function(v) {
+      handler(v);
+      return v;
+    });
+
+  public function filter(f : T -> Promise<Bool>) : Emitter<T>
+    return new Emitter(function(stream) {
+      init(new Stream(function(r) switch r {
+        case Pulse(v):
+          f(v).either(
+            function(c)   if(c) stream.pulse(v),
+            function(err) stream.fail(err)
+          );
+        case Failure(e):  stream.fail(e);
+        case End(true):   stream.cancel();
+        case End(false):  stream.end();
+      }));
+    });
+
+  public function filterValue(f : T -> Bool) : Emitter<T>
+    return filter(function(v) return Promise.value(f(v)));
+
+  public function concat(other : Emitter<T>) : Emitter<T>
+    return new Emitter(function(stream) {
+      init(new Stream(function(r) switch r {
+        case Pulse(v):    stream.pulse(v);
+        case Failure(e):  stream.fail(e);
+        case End(true):   stream.cancel();
+        case End(false):  other.init(stream);
+      }));
+    });
+
+  public function merge(other : Emitter<T>) : Emitter<T>
+    return new Emitter(function(stream : Stream<T>) {
+      init(stream);
+      other.init(stream);
     });
 }
