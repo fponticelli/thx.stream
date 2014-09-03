@@ -3,7 +3,7 @@ package thx.stream;
 import haxe.ds.Option;
 import thx.core.Error;
 import thx.core.Nil;
-import thx.core.Timer;
+import thx.core.Timer in T;
 import thx.promise.Promise;
 
 class Emitter<T> {
@@ -37,12 +37,14 @@ class Emitter<T> {
 
   public function delay(time : Int)
     return new Emitter(function(stream) {
-      Timer.delay(function() init(stream), time);
+      var id = T.delay(function() init(stream), time);
+      stream.addCleanUp(T.clear.bind(id));
     });
 
   public function map<TOut>(f : T -> Promise<TOut>) : Emitter<TOut>
     return new Emitter(function(stream) {
-      init(new Stream(function(r) switch r {
+      init(new Stream(function(r) {
+        switch r {
         case Pulse(v):
           f(v).either(
             function(vout) stream.pulse(vout),
@@ -51,28 +53,38 @@ class Emitter<T> {
         case Failure(e):   stream.fail(e);
         case End(true):    stream.cancel();
         case End(false):   stream.end();
-      }));
+      }}));
     });
 
   public function mapValue<TOut>(f : T -> TOut) : Emitter<TOut>
     return map(function(v) return Promise.value(f(v)));
 
+  // TODO ... have a look at those nasty instream
   public function takeUntil(f : T -> Promise<Bool>) : Emitter<T>
     return new Emitter(function(stream) {
-      init(new Stream(function(r) switch r {
+      var instream : Stream<T> = null;
+      instream = new Stream(function(r : StreamValue<T>) switch r {
         case Pulse(v):
           f(v).either(
-            function(c) if(c) {
+            function(c : Bool) if(c) {
               stream.pulse(v);
             } else {
+              instream.end();
               stream.end();
             },
-            function(err) stream.fail(err)
+            stream.fail
           );
-        case Failure(e):  stream.fail(e);
-        case End(true):   stream.cancel();
-        case End(false):  stream.end();
-      }));
+        case Failure(e):
+          instream.fail(e);
+          stream.fail(e);
+        case End(true):
+          instream.cancel();
+          stream.cancel();
+        case End(false):
+          instream.end();
+          stream.end();
+      });
+      this.init(instream);
     });
 
   public function take(count : Int)
@@ -119,7 +131,6 @@ class Emitter<T> {
       init(stream);
       other.init(stream);
     });
-
   public function toOption() : Emitter<Option<T>>
     return mapValue(function(v) return null == v ? None : Some(v));
   public function toNil() : Emitter<Nil>

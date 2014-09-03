@@ -6,15 +6,15 @@ import thx.stream.StreamValue;
 class Test {
   public function new() {}
 
-  static function expectations<T>(values : Array<T>, isCancel : Bool = false) {
+  static function expectations<T>(values : Array<T>, isCancel : Bool = false) : Array<StreamValue<T>> {
     return values.map(function(v) return Pulse(v)).concat([End(isCancel)]);
   }
 
-  function assertExpectations<T>(values : Array<T>, ?callback : T -> Void, isCancel : Bool = false, ?done : Void -> Void, ?pos : haxe.PosInfos) {
+  function assertExpectations<T>(values : Array<T>, ?callback : T -> Void, isCancel : Bool = false, ?done : Void -> Void, ?pos : haxe.PosInfos) : StreamValue<T> -> Void {
     return assertSubscriber(expectations(values, isCancel), callback, done, pos);
   }
 
-  function assertSubscriber<T>(expectations : Array<StreamValue<T>>, ?callback : T -> Void, ?done : Void -> Void, ?pos : haxe.PosInfos) {
+  function assertSubscriber<T>(expectations : Array<StreamValue<T>>, ?callback : T -> Void, ?done : Void -> Void, ?pos : haxe.PosInfos) : StreamValue<T> -> Void {
     callback = null == callback ? function(_) {} : callback;
     done = null == done ? Assert.createAsync() : done;
     return function(test : StreamValue<T>) {

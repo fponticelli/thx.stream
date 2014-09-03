@@ -18,7 +18,7 @@ class Timer {
     return repeat(repetitions, delay).mapValue(build);
 
   public static function sequence<T>(repetitions : Int, delay : Int, build : Void -> T)
-    return sequenceNil(repetitions, delay, function(_) return build());
+    return repeat(repetitions, delay).mapValue(function(_) return build());
 
   public static function sequencei<T>(repetitions : Int, delay : Int, build : Int -> T)
     return sequence(repetitions, delay, {
