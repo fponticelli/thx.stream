@@ -1,6 +1,8 @@
 package thx.stream;
 
+import haxe.ds.Option;
 import thx.core.Error;
+import thx.core.Nil;
 import thx.core.Timer;
 import thx.promise.Promise;
 
@@ -117,4 +119,118 @@ class Emitter<T> {
       init(stream);
       other.init(stream);
     });
+
+  public function toOption() : Emitter<Option<T>>
+    return mapValue(function(v) return null == v ? None : Some(v));
+  public function toNil() : Emitter<Nil>
+    return mapValue(function(_) return nil);
+  public function toTrue() : Emitter<Bool>
+    return mapValue(function(_) return true);
+  public function toFalse() : Emitter<Bool>
+    return mapValue(function(_) return false);
+  public function log(?prefix : String, ?posInfo : haxe.PosInfos) {
+    prefix = prefix == null ? '': '${prefix}: ';
+    return mapValue(function(v) {
+      haxe.Log.trace('$prefix$v', posInfo);
+      return v;
+    });
+  }
+
+  public function withValue(?expected : T) : Emitter<T>
+    return filterValue(
+      null == expected ?
+        function(v : T) return v != null :
+        function(v : T) return v == expected
+    );
+
+// blend
+// keep
+// debounce
+// sampleBy
+// pair
+// distinct
+// merge
+// sync
+// zip
+// previous
+// public function window(length : Int, fillBeforeEmit = false) : Producer<T> // or unique
+// public function reduce(acc : TOut, TOut -> T) : Producer<TOut>
+// public function debounce(delay : Int) : Producer<T>
+// exact pair
+// public function zip<TOther>(other : Producer<TOther>) : Producer<Tuple<T, TOther>> // or sync
+
+// mapFilter?
+
+/*
+  public static function filterOption<T>(producer : Producer<Option<T>>) : Producer<T>
+    return producer
+      .filter(function(opt) return switch opt { case Some(_): true; case None: false; })
+      .map(function(opt) return switch opt { case Some(v) : v; case None: throw 'filterOption failed'; });
+
+  public static function toValue<T>(producer : Producer<Option<T>>) : Producer<Null<T>>
+    return producer
+      .map(function(opt) return switch opt { case Some(v) : v; case None: null; });
+
+  public static function toBool<T>(producer : Producer<Option<T>>) : Producer<Bool>
+    return producer
+      .map(function(opt) return switch opt { case Some(_) : true; case None: false; });
+
+  public static function skipNull<T>(producer : Producer<Null<T>>) : Producer<T>
+    return producer
+      .filter(function(value) return null != value);
+
+  public static function left<TLeft, TRight>(producer : Producer<Tuple2<TLeft, TRight>>) : Producer<TLeft>
+    return producer.map(function(v) return v._0);
+
+  public static function right<TLeft, TRight>(producer : Producer<Tuple2<TLeft, TRight>>) : Producer<TRight>
+    return producer.map(function(v) return v._1);
+
+  public static function negate(producer : Producer<Bool>)
+    return producer.map(function(v) return !v);
+
+  public static function flatMap<T>(producer : Producer<Array<T>>) : Producer<T> {
+    return new Producer(function(forward : Pulse<T> -> Void) {
+      producer.feed(Bus.passOn(
+        function(arr : Array<T>) arr.map(function(value) forward(Emit(value))),
+        forward
+      ));
+    }, producer.endOnError);
+  }
+
+  public static function delayed<T>(producer : Producer<T>, delay : Int) : Producer<T> {
+    return new Producer(function(forward) {
+      producer.feed(new Bus(
+        function(v)
+          Timer.setTimeout(function() forward(Emit(v)), delay),
+        function()
+          Timer.setTimeout(function() forward(End), delay),
+        function(error)
+          Timer.setTimeout(function() forward(Fail(error)), delay)
+      ));
+    }, producer.endOnError);
+  }
+
+@:access(steamer.Producer)
+class ProducerProducer {
+  public static function flatMap<T>(producer : Producer<Producer<T>>) : Producer<T> {
+    return new Producer(function(forward : Pulse<T> -> Void) {
+      producer.feed(Bus.passOn(
+        function(prod : Producer<T>) {
+          prod.feed(Bus.passOn(
+            function(value : T) forward(Emit(value)),
+            forward
+          ));
+        },
+        forward
+      ));
+    }, producer.endOnError);
+  }
+}
+
+class StringProducer {
+  public static function toBool(producer : Producer<String>) : Producer<Bool>
+    return producer
+      .map(function(s) return s != null && s != "");
+}
+*/
 }
