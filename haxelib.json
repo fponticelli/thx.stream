@@ -9,7 +9,7 @@
   "version": "0.1.0",
   "contributors": ["fponticelli"],
   "dependencies": {
-    "thx.core": "0.5.2",
-    "thx.promise": "0.2.0"
+    "thx.core": "",
+    "thx.promise": ""
   }
 }

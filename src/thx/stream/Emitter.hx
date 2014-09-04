@@ -171,15 +171,193 @@ class Emitter<T> {
         function(v : T) return v == expected
     );
 
-// blend
-// keep
-// debounce
-// sampleBy
-// pair
-// distinct
-// sync
-// zip
-// previous
+/*
+  public function zip<TOther>(other : Producer<TOther>) : Producer<Tuple2<T, TOther>> {
+    return new Producer(function(forward : Pulse<Tuple2<T, TOther>> -> Void) {
+      var ended = false,
+        endA  = false,
+        endB  = false,
+        buffA : Array<T> = [],
+        buffB : Array<TOther> = [];
+
+      function produce() {
+        if(((buffA.length == 0 && endA) || (buffB.length == 0 && endB)) && !ended) {
+          buffA = null;
+          buffB = null;
+          ended = true;
+          return forward(End);
+        }
+        if(buffA.length == 0 || buffB.length == 0) return;
+        forward(Emit(new Tuple2(buffA.shift(), buffB.shift())));
+      }
+
+      this.feed(new Bus(
+        function(value : T) {
+          if(ended) return;
+          buffA.push(value);
+          produce();
+        },
+        function() {
+          endA = true;
+          produce();
+        },
+        function(error) {
+          forward(Fail(error));
+        }
+      ));
+
+      other.feed(new Bus(
+        function(value : TOther) {
+          if(ended) return;
+          buffB.push(value);
+          produce();
+        },
+        function() {
+          endB = true;
+          produce();
+        },
+        function(error) {
+          forward(Fail(error));
+        }
+      ));
+    }, endOnError);
+  }
+
+  public function blend<TOther, TOut>(other : Producer<TOther>, f : T -> TOther -> TOut) : Producer<TOut> {
+    return this.zip(other).map(function(tuple) {
+      return f(tuple._0, tuple._1);
+    });
+  }
+
+  public function pair<TOther>(other : Producer<TOther>) : Producer<Tuple2<T, TOther>> {
+    return new Producer(function(forward : Pulse<Tuple2<T, TOther>> -> Void) {
+      var endA  = false,
+        endB  = false,
+        buffA : T = null,
+        buffB : TOther = null;
+
+      function produce() {
+        if(endA && endB) {
+          buffA = null;
+          buffB = null;
+          return forward(End);
+        }
+        if(buffA == null || buffB == null) return;
+        forward(Emit(new Tuple2(buffA, buffB)));
+      }
+
+      this.feed(new Bus(
+        function(value : T) {
+          buffA = value;
+          produce();
+        },
+        function() {
+          endA = true;
+          produce();
+        },
+        function(error) {
+          forward(Fail(error));
+        }
+      ));
+
+      other.feed(new Bus(
+        function(value : TOther) {
+          buffB = value;
+          produce();
+        },
+        function() {
+          endB = true;
+          produce();
+        },
+        function(error) {
+          forward(Fail(error));
+        }
+      ));
+
+    }, endOnError);
+  }
+
+  public function distinct(?equals : T -> T -> Bool) : Producer<T> {
+    if(null == equals)
+      equals = function(a, b) return a == b;
+    return new Producer(function(forward) {
+      var last : T = null;
+      this.feed(Bus.passOn(
+        function(v) {
+          if(equals(v, last)) return;
+          last = v;
+          forward(Emit(v));
+        },
+        forward
+      ));
+    }, endOnError);
+  }
+
+  public  function debounce(delay : Int) : Producer<T> {
+    return new Producer(function(forward) {
+      var id : TimerID = null;
+      this.feed(Bus.passOn(
+        function(v : T) {
+          Timer.clearTimer(id);
+          id = Timer.setTimeout(forward.bind(Emit(v)), delay);
+        },
+        forward
+      ));
+    }, endOnError);
+  }
+
+  public function sampleBy<TSampler>(sampler : Producer<TSampler>) : Producer<Tuple2<T, TSampler>> {
+    return new Producer(function(forward : Pulse<Tuple2<T, TSampler>> -> Void) {
+      var latest : T = null;
+      this.feed(Bus.passOn(
+        function(v) latest = v,
+        forward
+      ));
+      sampler.feed(Bus.passOn(
+        function(v) {
+          // skip if this hasn't produced anything yet or has been cleared
+          if(null == latest) return;
+          forward(Emit(new Tuple2(latest, v)));
+          latest = null;
+        },
+        forward
+      ));
+    }, endOnError);
+  }
+
+  public function keep(n : Int) : Producer<Array<T>> {
+    return new Producer(function(forward) {
+      var acc = [];
+      this.feed(Bus.passOn(
+        function(v) {
+          acc.push(v);
+          if(acc.length > n)
+            acc.shift();
+          forward(Emit(acc));
+        },
+        forward
+      ));
+    }, endOnError);
+  }
+
+  public function previous() : Producer<T> {
+    return new Producer(function(forward) {
+      var isFirst   = true,
+        state : T = null;
+      this.feed(Bus.passOn(
+        function(v) {
+          if(isFirst) {
+            isFirst = false;
+          } else {
+            forward(Emit(state));
+          }
+          state = v;
+        },
+        forward
+      ));
+    }, endOnError);
+  }
+*/
 // public function window(length : Int, fillBeforeEmit = false) : Emitter<T> // or unique
 // public function reduce(acc : TOut, TOut -> T) : Emitter<TOut>
 // public function debounce(delay : Int) : Emitter<T>
