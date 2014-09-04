@@ -10,7 +10,7 @@ class TestAll {
     runner.addCase(new TestEmitter());
     runner.addCase(new TestStream());
     runner.addCase(new TestTimer());
-    //runner.addCase(new TestValue());
+    runner.addCase(new TestValue());
     Report.create(runner);
     runner.run();
   }

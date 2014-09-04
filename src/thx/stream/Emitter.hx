@@ -18,13 +18,13 @@ class Emitter<T> {
     this.init = init;
   }
 
-  public function sign(subscriber : StreamValue<T> -> Void) : Stream<T> {
+  public function sign(subscriber : StreamValue<T> -> Void) : IStream {
     var stream = new Stream(subscriber);
     init(stream);
     return stream;
   }
 
-  public function subscribe(?pulse : T -> Void, ?fail : Error -> Void, ?end : Bool -> Void) {
+  public function subscribe(?pulse : T -> Void, ?fail : Error -> Void, ?end : Bool -> Void) : IStream {
     pulse = null != pulse ? pulse : function(_) {};
     fail = null != fail ? fail : function(_) {};
     end = null != end ? end : function(_) {};
@@ -33,6 +33,21 @@ class Emitter<T> {
       case Failure(e): fail(e);
       case End(c): end(c);
     });
+    init(stream);
+    return stream;
+  }
+
+  @:access(thx.stream.Value)
+  @:access(thx.stream.Stream)
+  public function feed(value : Value<T>) : IStream {
+    var stream : Stream<T> = new Stream(null);
+    stream.subscriber = function(r) switch r {
+      case Pulse(v): value.set(v);
+      case Failure(e): stream.fail(e);
+      case End(c): if(c) stream.cancel() else stream.end();
+    };
+    value.upStreams.push(stream);
+    stream.addCleanUp(function() value.upStreams.remove(stream));
     init(stream);
     return stream;
   }

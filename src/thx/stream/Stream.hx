@@ -2,7 +2,7 @@ package thx.stream;
 
 import thx.core.Error;
 
-class Stream<T> {
+class Stream<T> implements IStream {
 
   var subscriber : StreamValue<T> -> Void;
   var cleanUps : Array<Void -> Void>;
