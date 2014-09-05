@@ -122,4 +122,10 @@ class TestEmitter extends Test {
       })
       .sign(assertExpectations([1,4], true));
   }
+
+  public function testReduce() {
+    Timer.ofArray([1,2,3,4], 10)
+      .reduce(0, function(acc, value) return acc + value)
+      .sign(assertExpectations([1,3,6,10]));
+  }
 }

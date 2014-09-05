@@ -148,6 +148,19 @@ class Emitter<T> {
       init(stream);
       other.init(stream);
     });
+
+  public function reduce<TOut>(acc : TOut, f : TOut -> T -> TOut) : Emitter<TOut>
+    return new Emitter(function(stream) {
+      init(new Stream(function(r) switch r {
+        case Pulse(v):
+          acc = f(acc, v);
+          stream.pulse(acc);
+        case Failure(e):  stream.fail(e);
+        case End(true):   stream.cancel();
+        case End(false):  stream.end();
+      }));
+    });
+
   public function toOption() : Emitter<Option<T>>
     return mapValue(function(v) return null == v ? None : Some(v));
   public function toNil() : Emitter<Nil>
@@ -156,6 +169,8 @@ class Emitter<T> {
     return mapValue(function(_) return true);
   public function toFalse() : Emitter<Bool>
     return mapValue(function(_) return false);
+  public function toValue<T>(value : T) : Emitter<T>
+    return mapValue(function(_) return value);
   public function log(?prefix : String, ?posInfo : haxe.PosInfos) {
     prefix = prefix == null ? '': '${prefix}: ';
     return mapValue(function(v) {
