@@ -52,6 +52,17 @@ class Emitter<T> {
     return stream;
   }
 
+  @:access(thx.stream.Bus)
+  @:access(thx.stream.Stream)
+  public function plug(bus : Bus<T>) : IStream {
+    var stream : Stream<T> = new Stream(null);
+    stream.subscriber = bus.emit;
+    bus.upStreams.push(stream);
+    stream.addCleanUp(function() bus.upStreams.remove(stream));
+    init(stream);
+    return stream;
+  }
+
   public function delay(time : Int)
     return new Emitter(function(stream) {
       var id = T.delay(function() init(stream), time);
