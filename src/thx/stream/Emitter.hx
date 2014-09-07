@@ -4,6 +4,7 @@ import haxe.ds.Option;
 import thx.core.Error;
 import thx.core.Nil;
 import thx.core.Timer in T;
+import thx.core.Timer.TimerID;
 import thx.promise.Promise;
 using thx.core.Options;
 using thx.core.Tuple;
@@ -67,6 +68,22 @@ class Emitter<T> {
     return new Emitter(function(stream) {
       var id = T.delay(function() init(stream), time);
       stream.addCleanUp(T.clear.bind(id));
+    });
+
+  public function debounce(delay : Int)
+    return new Emitter(function(stream) {
+      var id : TimerID = null;
+      stream.addCleanUp(function() T.clear(id));
+      init(new Stream(function(r : StreamValue<T>) {
+        switch r {
+          case Pulse(v):
+            T.clear(id);
+            id = T.delay(stream.pulse.bind(v), delay);
+          case Failure(e): stream.fail(e);
+          case End(true):  stream.cancel();
+          case End(false): T.delay(stream.end, delay);
+        }
+      }));
     });
 
   public function map<TOut>(f : T -> Promise<TOut>) : Emitter<TOut>
@@ -197,6 +214,23 @@ class Emitter<T> {
         function(v : T) return v == expected
     );
 
+  public function distinct(?equals : T -> T -> Bool) : Emitter<T>
+    return new Emitter(function(stream) {
+      if(null == equals)
+        equals = function(a, b) return a == b;
+      var last : T = null;
+      init(new Stream(function(r) switch r {
+        case Pulse(v):
+          if(equals(v, last))
+            return;
+          last = v;
+          stream.pulse(v);
+        case Failure(e):  stream.fail(e);
+        case End(true):   stream.cancel();
+        case End(false):  stream.end();
+      }));
+    });
+}
 /*
   public function zip<TOther>(other : Producer<TOther>) : Producer<Tuple2<T, TOther>> {
     return new Producer(function(forward : Pulse<Tuple2<T, TOther>> -> Void) {
@@ -303,35 +337,6 @@ class Emitter<T> {
     }, endOnError);
   }
 
-  public function distinct(?equals : T -> T -> Bool) : Producer<T> {
-    if(null == equals)
-      equals = function(a, b) return a == b;
-    return new Producer(function(forward) {
-      var last : T = null;
-      this.feed(Bus.passOn(
-        function(v) {
-          if(equals(v, last)) return;
-          last = v;
-          forward(Emit(v));
-        },
-        forward
-      ));
-    }, endOnError);
-  }
-
-  public  function debounce(delay : Int) : Producer<T> {
-    return new Producer(function(forward) {
-      var id : TimerID = null;
-      this.feed(Bus.passOn(
-        function(v : T) {
-          Timer.clearTimer(id);
-          id = Timer.setTimeout(forward.bind(Emit(v)), delay);
-        },
-        forward
-      ));
-    }, endOnError);
-  }
-
   public function sampleBy<TSampler>(sampler : Producer<TSampler>) : Producer<Tuple2<T, TSampler>> {
     return new Producer(function(forward : Pulse<Tuple2<T, TSampler>> -> Void) {
       var latest : T = null;
@@ -390,7 +395,6 @@ class Emitter<T> {
 // exact pair
 // public function zip<TOther>(other : Emitter<TOther>) : Emitter<Tuple<T, TOther>> // or sync
 // mapFilter?
-}
 
 class EmitterStrings {
   public static function toBool(emitter : Emitter<String>) : Emitter<Bool>

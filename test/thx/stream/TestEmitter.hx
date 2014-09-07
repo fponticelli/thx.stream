@@ -128,4 +128,16 @@ class TestEmitter extends Test {
       .reduce(0, function(acc, value) return acc + value)
       .sign(assertExpectations([1,3,6,10]));
   }
+
+  public function testDebounce() {
+    Timer.ofArray([1,2,3,4], 2)
+      .debounce(25)
+      .sign(assertExpectations([4]));
+  }
+
+  public function testDistinct() {
+    Timer.ofArray([1,1,1,1,2,2,2,3,3], 2)
+      .distinct()
+      .sign(assertExpectations([1,2,3]));
+  }
 }
