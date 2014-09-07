@@ -391,6 +391,19 @@ class EmitterOptions {
   public static function toBool<T>(emitter : Emitter<Option<T>>) : Emitter<Bool>
     return emitter
       .mapValue(function(opt) return opt.toBool());
+
+  public static function either<T>(emitter : Emitter<Option<T>>, ?some : T -> Void, ?none : Void -> Void, ?fail : Error -> Void, ?end : Bool -> Void) {
+    if(null == some) some = function(_) {};
+    if(null == none) none = function() {};
+    return emitter.subscribe(
+        function(o : Option<T>) switch o {
+          case Some(v) : some(v);
+          case None: none;
+        },
+        fail,
+        end
+      );
+  }
 }
 
 class Emitters {
@@ -406,15 +419,26 @@ class EmitterBools {
 
 @:access(thx.stream.Emitter)
 class EmitterEmitters {
-  public static function flatMap<T>(emitter : Emitter<Array<T>>) : Emitter<T>
+  public static function flatMap<T>(emitter : Emitter<Emitter<T>>) : Emitter<T>
+    return new Emitter(function(stream) {
+      emitter.init(new Stream(function(r : StreamValue<Emitter<T>>) {
+        switch r {
+          case Pulse(em):  em.init(stream);
+          case Failure(e): stream.fail(e);
+          case End(true):  stream.cancel();
+          case End(false): stream.end();
+        }}));
+    });
+
+  public static function flatten<T>(emitter : Emitter<Array<T>>) : Emitter<T>
     return new Emitter(function(stream) {
       emitter.init(new Stream(function(r : StreamValue<Array<T>>) {
         switch r {
-        case Pulse(arr):   arr.map(stream.pulse);
-        case Failure(e):   stream.fail(e);
-        case End(true):    stream.cancel();
-        case End(false):   stream.end();
-      }}));
+          case Pulse(arr): arr.map(stream.pulse);
+          case Failure(e): stream.fail(e);
+          case End(true):  stream.cancel();
+          case End(false): stream.end();
+        }}));
     });
 }
 
