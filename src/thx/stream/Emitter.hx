@@ -230,111 +230,74 @@ class Emitter<T> {
         case End(false):  stream.end();
       }));
     });
+
+  public function pair<TOther>(other : Emitter<TOther>) : Emitter<Tuple2<T, TOther>>
+    return new Emitter(function(stream) {
+      var _0 : Null<T> = null,
+          _1 : Null<TOther> = null;
+      stream.addCleanUp(function() {
+        _0 = null;
+        _1 = null;
+      });
+      function pulse() {
+        if(null == _0 || null == _1)
+          return;
+        stream.pulse(new Tuple2(_0, _1));
+      }
+      init(new Stream(function(r) switch r {
+        case Pulse(v):
+          _0 = v;
+          pulse();
+        case Failure(e):  stream.fail(e);
+        case End(true):   stream.cancel();
+        case End(false):  stream.end();
+      }));
+      other.init(new Stream(function(r) switch r {
+        case Pulse(v):
+          _1 = v;
+          pulse();
+        case Failure(e):  stream.fail(e);
+        case End(true):   stream.cancel();
+        case End(false):  stream.end();
+      }));
+    });
+
+  public function zip<TOther>(other : Emitter<TOther>) : Emitter<Tuple2<T, TOther>>
+    return new Emitter(function(stream) {
+      var _0 : Array<T> = [],
+          _1 : Array<TOther> = [];
+      stream.addCleanUp(function() {
+        _0 = null;
+        _1 = null;
+      });
+      function pulse() {
+        if(_0.length == 0 || _1.length == 0)
+          return;
+        stream.pulse(new Tuple2(_0.shift(), _1.shift()));
+      }
+      init(new Stream(function(r) switch r {
+        case Pulse(v):
+          _0.push(v);
+          pulse();
+        case Failure(e):  stream.fail(e);
+        case End(true):   stream.cancel();
+        case End(false):  stream.end();
+      }));
+      other.init(new Stream(function(r) switch r {
+        case Pulse(v):
+          _1.push(v);
+          pulse();
+        case Failure(e):  stream.fail(e);
+        case End(true):   stream.cancel();
+        case End(false):  stream.end();
+      }));
+    });
 }
 /*
-  public function zip<TOther>(other : Producer<TOther>) : Producer<Tuple2<T, TOther>> {
-    return new Producer(function(forward : Pulse<Tuple2<T, TOther>> -> Void) {
-      var ended = false,
-        endA  = false,
-        endB  = false,
-        buffA : Array<T> = [],
-        buffB : Array<TOther> = [];
-
-      function produce() {
-        if(((buffA.length == 0 && endA) || (buffB.length == 0 && endB)) && !ended) {
-          buffA = null;
-          buffB = null;
-          ended = true;
-          return forward(End);
-        }
-        if(buffA.length == 0 || buffB.length == 0) return;
-        forward(Emit(new Tuple2(buffA.shift(), buffB.shift())));
-      }
-
-      this.feed(new Bus(
-        function(value : T) {
-          if(ended) return;
-          buffA.push(value);
-          produce();
-        },
-        function() {
-          endA = true;
-          produce();
-        },
-        function(error) {
-          forward(Fail(error));
-        }
-      ));
-
-      other.feed(new Bus(
-        function(value : TOther) {
-          if(ended) return;
-          buffB.push(value);
-          produce();
-        },
-        function() {
-          endB = true;
-          produce();
-        },
-        function(error) {
-          forward(Fail(error));
-        }
-      ));
-    }, endOnError);
-  }
-
   public function blend<TOther, TOut>(other : Producer<TOther>, f : T -> TOther -> TOut) : Producer<TOut> {
     return this.zip(other).map(function(tuple) {
       return f(tuple._0, tuple._1);
     });
-  }
-
-  public function pair<TOther>(other : Producer<TOther>) : Producer<Tuple2<T, TOther>> {
-    return new Producer(function(forward : Pulse<Tuple2<T, TOther>> -> Void) {
-      var endA  = false,
-        endB  = false,
-        buffA : T = null,
-        buffB : TOther = null;
-
-      function produce() {
-        if(endA && endB) {
-          buffA = null;
-          buffB = null;
-          return forward(End);
-        }
-        if(buffA == null || buffB == null) return;
-        forward(Emit(new Tuple2(buffA, buffB)));
-      }
-
-      this.feed(new Bus(
-        function(value : T) {
-          buffA = value;
-          produce();
-        },
-        function() {
-          endA = true;
-          produce();
-        },
-        function(error) {
-          forward(Fail(error));
-        }
-      ));
-
-      other.feed(new Bus(
-        function(value : TOther) {
-          buffB = value;
-          produce();
-        },
-        function() {
-          endB = true;
-          produce();
-        },
-        function(error) {
-          forward(Fail(error));
-        }
-      ));
-
-    }, endOnError);
   }
 
   public function sampleBy<TSampler>(sampler : Producer<TSampler>) : Producer<Tuple2<T, TSampler>> {
@@ -400,6 +363,12 @@ class EmitterStrings {
   public static function toBool(emitter : Emitter<String>) : Emitter<Bool>
     return emitter
       .mapValue(function(s) return s != null && s != "");
+}
+
+class EmitterInts {
+  public static function toBool(emitter : Emitter<Int>) : Emitter<Bool>
+    return emitter
+      .mapValue(function(i) return i != 0);
 }
 
 class EmitterOptions {

@@ -1,6 +1,7 @@
 package thx.stream;
 
 import thx.promise.Promise;
+import thx.core.Tuple;
 
 class TestEmitter extends Test {
   public function testFromArray() {
@@ -139,5 +140,25 @@ class TestEmitter extends Test {
     Timer.ofArray([1,1,1,1,2,2,2,3,3], 2)
       .distinct()
       .sign(assertExpectations([1,2,3]));
+  }
+
+  public function testPair() {
+    Timer.ofArray([1,2,3], 3)
+      .pair(Timer.ofArray([5,7], 4))
+      .sign(assertExpectations([
+        new Tuple2(1,5),
+        new Tuple2(2,5),
+        new Tuple2(2,7),
+        new Tuple2(3,7)
+      ]));
+  }
+
+  public function testZip() {
+    Timer.ofArray([1,2,3], 3)
+      .zip(Timer.ofArray([5,7], 4))
+      .sign(assertExpectations([
+        new Tuple2(1,5),
+        new Tuple2(2,7)
+      ]));
   }
 }
