@@ -161,4 +161,41 @@ class TestEmitter extends Test {
         new Tuple2(2,7)
       ]));
   }
+
+  public function testSampleBy() {
+    Timer.ofArray([1,2,3,4], 3)
+      .sampleBy(Timer.ofArray([5,7], 4))
+      .sign(assertExpectations([
+        new Tuple2(1,5),
+        new Tuple2(2,7)
+      ]));
+  }
+
+  public function testWindow() {
+    Timer.ofArray([1,2,3,4,5], 3)
+      .window(3)
+      .sign(assertExpectations([
+        [1,2,3],
+        [2,3,4],
+        [3,4,5]
+      ]));
+  }
+
+  public function testWindowWithEarlyEmit() {
+    Timer.ofArray([1,2,3,4,5], 3)
+      .window(3, true)
+      .sign(assertExpectations([
+        [1],
+        [1,2],
+        [1,2,3],
+        [2,3,4],
+        [3,4,5]
+      ]));
+  }
+
+  public function testPrevious() {
+    Timer.ofArray([1,2,3], 3)
+      .previous()
+      .sign(assertExpectations([1,2]));
+  }
 }

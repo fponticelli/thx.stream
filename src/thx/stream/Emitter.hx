@@ -292,72 +292,79 @@ class Emitter<T> {
         case End(false):  stream.end();
       }));
     });
-}
-/*
-  public function blend<TOther, TOut>(other : Producer<TOther>, f : T -> TOther -> TOut) : Producer<TOut> {
-    return this.zip(other).map(function(tuple) {
-      return f(tuple._0, tuple._1);
+
+  public function sampleBy<TOther>(sampler : Emitter<TOther>) : Emitter<Tuple2<T, TOther>>
+    return new Emitter(function(stream) {
+      var _0 : Null<T> = null,
+          _1 : Null<TOther> = null;
+      stream.addCleanUp(function() {
+        _0 = null;
+        _1 = null;
+      });
+      function pulse() {
+        if(null == _0 || null == _1)
+          return;
+        stream.pulse(new Tuple2(_0, _1));
+      }
+      init(new Stream(function(r) switch r {
+        case Pulse(v):
+          _0 = v;
+        case Failure(e):  stream.fail(e);
+        case End(true):   stream.cancel();
+        case End(false):  stream.end();
+      }));
+      sampler.init(new Stream(function(r) switch r {
+        case Pulse(v):
+          _1 = v;
+          pulse();
+        case Failure(e):  stream.fail(e);
+        case End(true):   stream.cancel();
+        case End(false):  stream.end();
+      }));
     });
-  }
 
-  public function sampleBy<TSampler>(sampler : Producer<TSampler>) : Producer<Tuple2<T, TSampler>> {
-    return new Producer(function(forward : Pulse<Tuple2<T, TSampler>> -> Void) {
-      var latest : T = null;
-      this.feed(Bus.passOn(
-        function(v) latest = v,
-        forward
-      ));
-      sampler.feed(Bus.passOn(
-        function(v) {
-          // skip if this hasn't produced anything yet or has been cleared
-          if(null == latest) return;
-          forward(Emit(new Tuple2(latest, v)));
-          latest = null;
-        },
-        forward
-      ));
-    }, endOnError);
-  }
+  public function window(size : Int, ?emitWithLess = false) : Emitter<Array<T>>
+    return new Emitter(function(stream) {
+      var buf = [];
+      function pulse() {
+        if(buf.length > size)
+          buf.shift();
+        if(buf.length == size || emitWithLess)
+          stream.pulse(buf.copy());
+      }
 
-  public function keep(n : Int) : Producer<Array<T>> {
-    return new Producer(function(forward) {
-      var acc = [];
-      this.feed(Bus.passOn(
-        function(v) {
-          acc.push(v);
-          if(acc.length > n)
-            acc.shift();
-          forward(Emit(acc));
-        },
-        forward
-      ));
-    }, endOnError);
-  }
+      init(new Stream(function(r) switch r {
+        case Pulse(v):
+          buf.push(v);
+          pulse();
+        case Failure(e):  stream.fail(e);
+        case End(true):   stream.cancel();
+        case End(false):  stream.end();
+      }));
+    });
 
-  public function previous() : Producer<T> {
-    return new Producer(function(forward) {
-      var isFirst   = true,
-        state : T = null;
-      this.feed(Bus.passOn(
-        function(v) {
-          if(isFirst) {
-            isFirst = false;
-          } else {
-            forward(Emit(state));
-          }
-          state = v;
-        },
-        forward
-      ));
-    }, endOnError);
-  }
-*/
-// public function window(length : Int, fillBeforeEmit = false) : Emitter<T> // or unique
-// public function reduce(acc : TOut, TOut -> T) : Emitter<TOut>
-// public function debounce(delay : Int) : Emitter<T>
-// exact pair
-// public function zip<TOther>(other : Emitter<TOther>) : Emitter<Tuple<T, TOther>> // or sync
-// mapFilter?
+  public function previous() : Emitter<T>
+    return new Emitter(function(stream) {
+      var value : Null<T> = null,
+          first = true;
+      function pulse() {
+        if(first) {
+          first = false;
+          return;
+        }
+        stream.pulse(value);
+      }
+
+      init(new Stream(function(r) switch r {
+        case Pulse(v):
+          pulse();
+          value = v;
+        case Failure(e):  stream.fail(e);
+        case End(true):   stream.cancel();
+        case End(false):  stream.end();
+      }));
+    });
+}
 
 class EmitterStrings {
   public static function toBool(emitter : Emitter<String>) : Emitter<Bool>
