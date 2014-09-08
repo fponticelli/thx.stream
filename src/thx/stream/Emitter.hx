@@ -398,7 +398,7 @@ class EmitterOptions {
     return emitter.subscribe(
         function(o : Option<T>) switch o {
           case Some(v) : some(v);
-          case None: none;
+          case None: none();
         },
         fail,
         end
