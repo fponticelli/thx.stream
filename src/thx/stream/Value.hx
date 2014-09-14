@@ -1,10 +1,20 @@
 package thx.stream;
 
+import haxe.ds.Option;
+import thx.core.Options;
+
 class Value<T> extends Emitter<T> {
+  public static function createOption<T>(?value : T, ?equal : T -> T -> Bool) {
+    var def = null == value ? None : Some(value);
+    return new Value<Option<T>>(def, Options.equals.bind(_, _, equal));
+  }
+
   var value : T;
   var downStreams : Array<Stream<T>>;
   var upStreams : Array<Stream<T>>;
-  public function new(value : T) {
+  var equal : T -> T -> Bool;
+  public function new(value : T, ?equal : T -> T -> Bool) {
+    this.equal = null == equal ? function(a, b) return a == b : equal;
     this.value = value;
     this.downStreams = [];
     this.upStreams = [];
@@ -19,7 +29,7 @@ class Value<T> extends Emitter<T> {
     return value;
 
   public function set(value : T) {
-    if(this.value == value)
+    if(equal(this.value, value))
       return;
     this.value = value;
     update();
