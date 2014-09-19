@@ -198,4 +198,15 @@ class TestEmitter extends Test {
       .previous()
       .sign(assertExpectations([1,2]));
   }
+
+  public function testMapAndWindow() {
+    Timer.ofArray([1,2,3], 3)
+      .mapValue(function(v) return "" + (v-1))
+      .window(2, true)
+      .sign(assertExpectations([
+        ["0"],
+        ["0", "1"],
+        ["1", "2"]
+      ]));
+  }
 }
