@@ -3,8 +3,10 @@ package thx.stream;
 import haxe.ds.Option;
 import thx.core.Error;
 import thx.core.Nil;
+#if !macro
 import thx.core.Timer in T;
 import thx.core.Timer.TimerID;
+#end
 import thx.promise.Promise;
 using thx.core.Options;
 using thx.core.Tuple;
@@ -63,7 +65,7 @@ class Emitter<T> {
     init(stream);
     return stream;
   }
-
+#if !macro
   public function delay(time : Int)
     return new Emitter(function(stream) {
       var id = T.delay(function() init(stream), time);
@@ -85,7 +87,7 @@ class Emitter<T> {
         }
       }));
     });
-
+#end
   public function map<TOut>(f : T -> Promise<TOut>) : Emitter<TOut>
     return new Emitter(function(stream) {
       init(new Stream(function(r) {
@@ -104,7 +106,7 @@ class Emitter<T> {
   public function mapValue<TOut>(f : T -> TOut) : Emitter<TOut>
     return map(function(v) return Promise.value(f(v)));
 
-  // TODO ... have a look at those nasty instream
+  // TODO: ... have a look at those nasty instream
   public function takeUntil(f : T -> Promise<Bool>) : Emitter<T>
     return new Emitter(function(stream) {
       var instream : Stream<T> = null;
@@ -132,6 +134,12 @@ class Emitter<T> {
       this.init(instream);
     });
 
+  // TODO: skip(n) use skipUntil()
+  // TODO: skipLast(n) needs huge buffer?
+  // TODO: skipUntil(predicate)
+  // TODO: takeAt(position/index) use take()+last()
+  // TODO: takeLast(n) use window()
+  // TODO: first() / last() use take()/takeLast()
   public function take(count : Int)
     return takeUntil({
       var counter = 0;
@@ -177,6 +185,8 @@ class Emitter<T> {
       other.init(stream);
     });
 
+  // TODO: change to emit only once before end?
+  // TODO: scan to replace current reduce?
   public function reduce<TOut>(acc : TOut, f : TOut -> T -> TOut) : Emitter<TOut>
     return new Emitter(function(stream) {
       init(new Stream(function(r) switch r {
@@ -207,6 +217,12 @@ class Emitter<T> {
     });
   }
 
+  macro public function mapField<T>(emitter : haxe.macro.Expr.ExprOf<Emitter<T>>, field : haxe.macro.Expr) {
+    var id = 'o.'+haxe.macro.ExprTools.toString(field),
+        expr = haxe.macro.Context.parse(id, field.pos);
+    return macro $e{emitter}.mapValue(function(o) return ${expr});
+  }
+
   public function withValue(?expected : T) : Emitter<T>
     return filterValue(
       null == expected ?
@@ -214,6 +230,7 @@ class Emitter<T> {
         function(v : T) return v == expected
     );
 
+  // TODO: unique() // no repeated values
   public function distinct(?equals : T -> T -> Bool) : Emitter<T>
     return new Emitter(function(stream) {
       if(null == equals)
@@ -293,6 +310,7 @@ class Emitter<T> {
       }));
     });
 
+  // throttle(wait) at most once every per wait use sampleBy(Timer.repeat(Nil, wait)).left()
   public function sampleBy<TOther>(sampler : Emitter<TOther>) : Emitter<Tuple2<T, TOther>>
     return new Emitter(function(stream) {
       var _0 : Null<T> = null,
@@ -323,6 +341,9 @@ class Emitter<T> {
       }));
     });
 
+  public function samplerOf<TOther>(sampled : Emitter<TOther>) : Emitter<Tuple2<T, TOther>>
+    return sampled.sampleBy(this).mapValue(function(t) return t.flip());
+
   public function window(size : Int, ?emitWithLess = false) : Emitter<Array<T>>
     return new Emitter(function(stream) {
       var buf = [];
@@ -343,6 +364,7 @@ class Emitter<T> {
       }));
     });
 
+  // TODO: diff(?seed, fn(prev, next))
   public function previous() : Emitter<T>
     return new Emitter(function(stream) {
       var value : Null<T> = null,
@@ -364,6 +386,30 @@ class Emitter<T> {
         case End(false):  stream.end();
       }));
     });
+
+    public function count()
+      return mapValue((function(){
+          var c = 0;
+          return function(_) return ++c;
+        })());
+
+    // TODO: matchers is(), where() return instances od Matcher : Emitter
+    // TODO: Matcher API
+    //  * less/greaterThan(x)
+    //  * less/greaterThanOrEqualTo(x)
+    //  * inRange(a, b) // inclusive/exclusive
+    //  * equalTo(x)
+    //  * truthy()
+    //  * match(regexp)
+    //  * not()
+    //  * containerOf(x) // array
+    //  * memberOf(arr)
+}
+
+class Emitters {
+  public static function skipNull<T>(emitter : Emitter<Null<T>>) : Emitter<T>
+    return emitter
+      .filterValue(function(value) return null != value);
 }
 
 class EmitterStrings {
@@ -376,6 +422,40 @@ class EmitterInts {
   public static function toBool(emitter : Emitter<Int>) : Emitter<Bool>
     return emitter
       .mapValue(function(i) return i != 0);
+
+  public static function sum(emitter : Emitter<Int>) : Emitter<Int>
+    return emitter
+      .mapValue((function(){
+        var value = 0;
+        return function(v) return value += v;
+      })());
+
+  public static function average(emitter : Emitter<Int>) : Emitter<Float>
+    return emitter
+      .mapValue((function(){
+        var sum = 0.0,
+            count = 0;
+        return function(v) return (sum += v) / (++count);
+      })());
+}
+
+// max()
+// min()
+class EmitterFloats {
+  public static function sum(emitter : Emitter<Float>) : Emitter<Float>
+    return emitter
+      .mapValue((function(){
+        var sum = 0.0;
+        return function(v) return sum += v;
+      })());
+
+  public static function average(emitter : Emitter<Float>) : Emitter<Float>
+    return emitter
+      .mapValue((function(){
+        var sum = 0.0,
+            count = 0;
+        return function(v) return (sum += v) / (++count);
+      })());
 }
 
 class EmitterOptions {
@@ -404,12 +484,6 @@ class EmitterOptions {
         end
       );
   }
-}
-
-class Emitters {
-  public static function skipNull<T>(emitter : Emitter<Null<T>>) : Emitter<T>
-    return emitter
-      .filterValue(function(value) return null != value);
 }
 
 class EmitterBools {

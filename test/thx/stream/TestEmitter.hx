@@ -2,6 +2,7 @@ package thx.stream;
 
 import thx.promise.Promise;
 import thx.core.Tuple;
+using thx.stream.Emitter;
 
 class TestEmitter extends Test {
   public function testFromArray() {
@@ -208,5 +209,35 @@ class TestEmitter extends Test {
         ["0", "1"],
         ["1", "2"]
       ]));
+  }
+
+  public function testMapFieldValue() {
+    Timer.ofArray([{ a : 1}, {a : 2}, {a : 3}], 3)
+      .mapField(a)
+      .sign(assertExpectations([1,2,3]));
+  }
+
+  public function testMapFieldMethod() {
+    Timer.ofArray([{ a : function(x) return x * 1}, {a : function(x) return x * 2}, {a : function(x) return x * 3}], 3)
+      .mapField(a(2))
+      .sign(assertExpectations([2,4,6]));
+  }
+
+  public function testFloatsSum() {
+    Timer.ofArray([1.0,2.0,3.0], 3)
+      .sum()
+      .sign(assertExpectations([1.0,3.0,6.0]));
+  }
+
+  public function testIntsSum() {
+    Timer.ofArray([1,2,3], 3)
+      .sum()
+      .sign(assertExpectations([1,3,6]));
+  }
+
+  public function testIntsAverage() {
+    Timer.ofArray([1,2,3], 3)
+      .average()
+      .sign(assertExpectations([1.0,1.5,2.0]));
   }
 }
