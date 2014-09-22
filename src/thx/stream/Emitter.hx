@@ -137,9 +137,29 @@ class Emitter<T> {
   // TODO: skip(n) use skipUntil()
   // TODO: skipLast(n) needs huge buffer?
   // TODO: skipUntil(predicate)
-  // TODO: takeAt(position/index) use take()+last()
-  // TODO: takeLast(n) use window()
-  // TODO: first() / last() use take()/takeLast()
+  public function takeAt(index : Int)
+    return take(index + 1).last();
+
+  public function first()
+    return take(1);
+
+  public function last()
+    return new Emitter(function(stream) {
+      var last : Null<T> = null;
+      init(new Stream(function(r) {
+        switch r {
+        case Pulse(v):   last = v;
+        case Failure(e): stream.fail(e);
+        case End(true):  stream.cancel();
+        case End(false):
+          stream.pulse(last);
+          stream.end();
+      }}));
+    });
+
+  public function takeLast(n : Int)
+    return EmitterArrays.flatten(window(n).last());
+
   public function take(count : Int)
     return takeUntil({
       var counter = 0;
@@ -553,7 +573,10 @@ class EmitterEmitters {
           case End(false): stream.end();
         }}));
     });
+}
 
+@:access(thx.stream.Emitter)
+class EmitterArrays {
   public static function flatten<T>(emitter : Emitter<Array<T>>) : Emitter<T>
     return new Emitter(function(stream) {
       emitter.init(new Stream(function(r : StreamValue<Array<T>>) {

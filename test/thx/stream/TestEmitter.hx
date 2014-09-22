@@ -270,4 +270,28 @@ class TestEmitter extends Test {
       .max()
       .sign(assertExpectations([1.1,3.3,4.4]));
   }
+
+  public function testFirst() {
+    Timer.ofArray([1,2,3], 3)
+      .first()
+      .sign(assertExpectations([1]));
+  }
+
+  public function testLast() {
+    Timer.ofArray([1,2,3], 3)
+      .last()
+      .sign(assertExpectations([3]));
+  }
+
+  public function testTakeLast() {
+    Timer.ofArray([1,2,3,4,5,6], 3)
+      .takeLast(3)
+      .sign(assertExpectations([4,5,6]));
+  }
+
+  public function testTakeAt() {
+    Timer.ofArray([1,2,3,4,5,6], 3)
+      .takeAt(3)
+      .sign(assertExpectations([4]));
+  }
 }
