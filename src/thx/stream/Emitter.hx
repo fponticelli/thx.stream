@@ -437,10 +437,34 @@ class EmitterInts {
             count = 0;
         return function(v) return (sum += v) / (++count);
       })());
+
+  public static function min(emitter : Emitter<Int>) : Emitter<Int>
+    return emitter
+      .filterValue((function() {
+        var min : Null<Int> = null;
+        return function(v)
+          return if(null == min || v < min) {
+            min = v;
+            true;
+          } else {
+            false;
+          }
+        })());
+
+  public static function max(emitter : Emitter<Int>) : Emitter<Int>
+    return emitter
+      .filterValue((function() {
+        var max : Null<Int> = null;
+        return function(v)
+          return if(null == max || v > max) {
+            max = v;
+            true;
+          } else {
+            false;
+          }
+        })());
 }
 
-// max()
-// min()
 class EmitterFloats {
   public static function sum(emitter : Emitter<Float>) : Emitter<Float>
     return emitter
@@ -456,6 +480,32 @@ class EmitterFloats {
             count = 0;
         return function(v) return (sum += v) / (++count);
       })());
+
+  public static function min(emitter : Emitter<Float>) : Emitter<Float>
+    return emitter
+      .filterValue((function() {
+        var min : Float = Math.POSITIVE_INFINITY;
+        return function(v)
+          return if(v < min) {
+            min = v;
+            true;
+          } else {
+            false;
+          }
+        })());
+
+  public static function max(emitter : Emitter<Float>) : Emitter<Float>
+    return emitter
+      .filterValue((function() {
+        var max : Float = Math.NEGATIVE_INFINITY;
+        return function(v)
+          return if(v > max) {
+            max = v;
+            true;
+          } else {
+            false;
+          }
+        })());
 }
 
 class EmitterOptions {

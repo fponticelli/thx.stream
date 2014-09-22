@@ -240,4 +240,34 @@ class TestEmitter extends Test {
       .average()
       .sign(assertExpectations([1.0,1.5,2.0]));
   }
+
+  public function testIntsMin() {
+    Timer.ofArray([3,1,2,3,0], 3)
+      .min()
+      .sign(assertExpectations([3,1,0]));
+  }
+
+  public function testIntsMax() {
+    Timer.ofArray([1,3,2,0,3,4], 3)
+      .max()
+      .sign(assertExpectations([1,3,4]));
+  }
+
+  public function testFloatsAverage() {
+    Timer.ofArray([1.2,2.0,3.1], 3)
+      .average()
+      .sign(assertExpectations([1.2,1.6,2.1]));
+  }
+
+  public function testFloatsMin() {
+    Timer.ofArray([3.3,1.1,2.2,3.3,0], 3)
+      .min()
+      .sign(assertExpectations([3.3,1.1,0]));
+  }
+
+  public function testFloatsMax() {
+    Timer.ofArray([1.1,3.3,2.2,0,3.3,4.4], 3)
+      .max()
+      .sign(assertExpectations([1.1,3.3,4.4]));
+  }
 }
