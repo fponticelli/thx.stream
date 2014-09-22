@@ -3,6 +3,7 @@ package thx.stream;
 import haxe.ds.Option;
 import thx.core.Options;
 
+// TODO: value lens
 class Value<T> extends Emitter<T> {
   public static function createOption<T>(?value : T, ?equal : T -> T -> Bool) {
     var def = null == value ? None : Some(value);
