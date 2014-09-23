@@ -5,11 +5,11 @@ import thx.core.Error;
 class Bus<T> extends Emitter<T> {
   var downStreams : Array<Stream<T>>;
   var upStreams : Array<Stream<T>>;
-  var unique : Bool;
+  var distinctValuesOnly : Bool;
   var equal : T -> T -> Bool;
   var value : Null<T>;
-  public function new(unique = false, ?equal : T -> T -> Bool) {
-    this.unique = unique;
+  public function new(distinctValuesOnly = false, ?equal : T -> T -> Bool) {
+    this.distinctValuesOnly = distinctValuesOnly;
     this.equal = null == equal ? function(a, b) return a == b : equal;
     this.downStreams = [];
     this.upStreams = [];
@@ -21,7 +21,7 @@ class Bus<T> extends Emitter<T> {
 
   public function emit(value : StreamValue<T>) switch value {
     case Pulse(v):
-      if(unique) {
+      if(distinctValuesOnly) {
         if(equal(v, this.value))
           return;
         this.value = v;

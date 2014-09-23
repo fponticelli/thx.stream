@@ -294,4 +294,36 @@ class TestEmitter extends Test {
       .takeAt(3)
       .sign(assertExpectations([4]));
   }
+
+  public function testSkipUntil() {
+    Timer.ofArray([1,2,3,4,5,6,5,4,3,2,1], 3)
+      .skipUntil(function(v) return v < 5)
+      .sign(assertExpectations([5,6,5,4,3,2,1]));
+  }
+
+  public function testSkip() {
+    Timer.ofArray([1,2,3,4,5,6,5,4,3,2,1], 3)
+      .skip(5)
+      .sign(assertExpectations([6,5,4,3,2,1]));
+  }
+
+  public function testSplit() {
+    var t = Streams.ofArray([for(i in 0...10) Math.random()])
+      .split();
+    t._0.zip(t._1)
+      .mapValue(function(t) return t._0 / t._1)
+      .sign(assertExpectations([1.0,1,1,1,1,1,1,1,1,1]));
+  }
+
+  public function testDiffWithSeed() {
+    Streams.ofArray([1,2,3,6])
+      .diff(0, function(prev, next) return next * prev)
+      .sign(assertExpectations([0,2,6,18]));
+  }
+
+  public function testDiffWithoutSeed() {
+    Streams.ofArray([1,2,3,6])
+      .diff(function(prev, next) return next / prev)
+      .sign(assertExpectations([2.0,1.5,2]));
+  }
 }

@@ -29,12 +29,12 @@ class Emitter<T> {
 
   public function subscribe(?pulse : T -> Void, ?fail : Error -> Void, ?end : Bool -> Void) : IStream {
     pulse = null != pulse ? pulse : function(_) {};
-    fail = null != fail ? fail : function(_) {};
-    end = null != end ? end : function(_) {};
+    fail  = null != fail  ? fail  : function(_) {};
+    end   = null != end   ? end   : function(_) {};
     var stream = new Stream(function(r) switch r {
-      case Pulse(v): pulse(v);
+      case Pulse(v):   pulse(v);
       case Failure(e): fail(e);
-      case End(c): end(c);
+      case End(c):     end(c);
     });
     init(stream);
     return stream;
@@ -87,6 +87,29 @@ class Emitter<T> {
         }
       }));
     });
+
+  public function split() : Tuple2<Emitter<T>, Emitter<T>> {
+    var inited  = false,
+        streams = [];
+    function init(stream) {
+      streams.push(stream);
+      if(!inited) {
+        inited = true;
+        // the delay ensures that the second stream has the time to be implemented
+        thx.core.Timer.immediate(function() {
+          this.init(new Stream(function(r) {
+            switch r {
+              case Pulse(v):   for(s in streams) s.pulse(v);
+              case Failure(e): for(s in streams) s.faile(e);
+              case End(true):  for(s in streams) s.canel();
+              case End(false): for(s in streams) s.end();
+            };
+          }));
+        });
+      }
+    }
+    return new Tuple2(Emitter.create(init), Emitter.create(init));
+  }
 #end
   public function map<TOut>(f : T -> Promise<TOut>) : Emitter<TOut>
     return new Emitter(function(stream) {
@@ -134,9 +157,24 @@ class Emitter<T> {
       this.init(instream);
     });
 
-  // TODO: skip(n) use skipUntil()
-  // TODO: skipLast(n) needs huge buffer?
-  // TODO: skipUntil(predicate)
+  public function skip(n : Int)
+    return skipUntil((function() {
+      var count = 0;
+      return function(_) return count++ < n;
+    })());
+
+  public function skipUntil(predicate : T -> Bool)
+    return filterValue((function() {
+      var flag = false;
+      return function(v) {
+        if(flag)
+          return true;
+        if(predicate(v))
+          return false;
+        return flag = true;
+      };
+    }()));
+
   public function takeAt(index : Int)
     return take(index + 1).last();
 
@@ -205,8 +243,6 @@ class Emitter<T> {
       other.init(stream);
     });
 
-  // TODO: change to emit only once before end?
-  // TODO: scan to replace current reduce?
   public function reduce<TOut>(acc : TOut, f : TOut -> T -> TOut) : Emitter<TOut>
     return new Emitter(function(stream) {
       init(new Stream(function(r) switch r {
@@ -250,23 +286,19 @@ class Emitter<T> {
         function(v : T) return v == expected
     );
 
-  // TODO: unique() // no repeated values
-  public function distinct(?equals : T -> T -> Bool) : Emitter<T>
-    return new Emitter(function(stream) {
-      if(null == equals)
+  public function distinct(?equals : T -> T -> Bool) : Emitter<T> {
+    if(null == equals)
         equals = function(a, b) return a == b;
       var last : T = null;
-      init(new Stream(function(r) switch r {
-        case Pulse(v):
-          if(equals(v, last))
-            return;
-          last = v;
-          stream.pulse(v);
-        case Failure(e):  stream.fail(e);
-        case End(true):   stream.cancel();
-        case End(false):  stream.end();
-      }));
+    return filterValue(function(v) {
+      return if(equals(v, last))
+        false;
+      else {
+        last = v;
+        true;
+      }
     });
+  }
 
   public function pair<TOther>(other : Emitter<TOther>) : Emitter<Tuple2<T, TOther>>
     return new Emitter(function(stream) {
@@ -384,7 +416,14 @@ class Emitter<T> {
       }));
     });
 
-  // TODO: diff(?seed, fn(prev, next))
+  public function diff<TOut>(?init : T, f : T -> T -> TOut) : Emitter<TOut>
+    return window(2, null != init).mapValue(function(a) {
+        return if(a.length == 1)
+          f(init, a[0]);
+        else
+          f(a[0], a[1]);
+      });
+
   public function previous() : Emitter<T>
     return new Emitter(function(stream) {
       var value : Null<T> = null,
@@ -413,29 +452,51 @@ class Emitter<T> {
           return function(_) return ++c;
         })());
 
-    // TODO: matchers is(), where() return instances od Matcher : Emitter
-    // TODO: Matcher API
-    //  * less/greaterThan(x)
-    //  * less/greaterThanOrEqualTo(x)
-    //  * inRange(a, b) // inclusive/exclusive
-    //  * equalTo(x)
-    //  * truthy()
-    //  * match(regexp)
-    //  * not()
-    //  * containerOf(x) // array
-    //  * memberOf(arr)
+    public function memberOf(arr : Array<T>)
+      return filterValue(function(v) return arr.indexOf(v) >= 0);
 }
 
 class Emitters {
   public static function skipNull<T>(emitter : Emitter<Null<T>>) : Emitter<T>
     return emitter
       .filterValue(function(value) return null != value);
+
+  public static function unique<T>(emitter : Emitter<T>) : Emitter<T>
+    return emitter.filterValue((function() {
+      var buf = [];
+      return function(v) {
+        return if(buf.indexOf(v) >= 0)
+          false;
+        else {
+          buf.push(v);
+          true;
+        }
+      };
+    })());
 }
 
 class EmitterStrings {
   public static function toBool(emitter : Emitter<String>) : Emitter<Bool>
-    return emitter
-      .mapValue(function(s) return s != null && s != "");
+    return emitter.mapValue(function(s) return s != null && s != "");
+
+  public static function truthy(emitter : Emitter<String>) : Emitter<String>
+    return emitter.filterValue(function(s) return s != null && s != "");
+
+  public static function match(emitter : Emitter<String>, pattern : EReg) : Emitter<String>
+    return emitter.filterValue(function(s) return pattern.match(s));
+
+  public static function unique(emitter : Emitter<String>) : Emitter<String>
+    return emitter.filterValue((function() {
+      var buf = new Map<String, Bool>();
+      return function(v) {
+        return if(buf.exists(v))
+          false;
+        else {
+          buf.set(v, true);
+          true;
+        }
+      };
+    })());
 }
 
 class EmitterInts {
@@ -483,6 +544,32 @@ class EmitterInts {
             false;
           }
         })());
+
+  public static function lessThan(emitter : Emitter<Int>, x : Int) : Emitter<Int>
+    return emitter.filterValue(function(v) return v < x);
+  public static function lessThanOrEqualTo(emitter : Emitter<Int>, x : Int) : Emitter<Int>
+    return emitter.filterValue(function(v) return v <= x);
+  public static function greaterThan(emitter : Emitter<Int>, x : Int) : Emitter<Int>
+    return emitter.filterValue(function(v) return v > x);
+  public static function greaterThanOrEqualTo(emitter : Emitter<Int>, x : Int) : Emitter<Int>
+    return emitter.filterValue(function(v) return v >= x);
+  public static function inRange(emitter : Emitter<Int>, min : Int, max : Int) : Emitter<Int>
+    return emitter.filterValue(function(v) return v <= max && v >= min);
+  public static function insideRange(emitter : Emitter<Int>, min : Int, max : Int) : Emitter<Int>
+    return emitter.filterValue(function(v) return v < max && v > min);
+
+  public static function unique(emitter : Emitter<Int>) : Emitter<Int>
+    return emitter.filterValue((function() {
+      var buf = new Map<Int, Bool>();
+      return function(v) {
+        return if(buf.exists(v))
+          false;
+        else {
+          buf.set(v, true);
+          true;
+        }
+      };
+    })());
 }
 
 class EmitterFloats {
@@ -526,6 +613,19 @@ class EmitterFloats {
             false;
           }
         })());
+
+  public static function lessThan(emitter : Emitter<Float>, x : Float) : Emitter<Float>
+    return emitter.filterValue(function(v) return v < x);
+  public static function lessThanOrEqualTo(emitter : Emitter<Float>, x : Float) : Emitter<Float>
+    return emitter.filterValue(function(v) return v <= x);
+  public static function greaterThan(emitter : Emitter<Float>, x : Float) : Emitter<Float>
+    return emitter.filterValue(function(v) return v > x);
+  public static function greaterThanOrEqualTo(emitter : Emitter<Float>, x : Float) : Emitter<Float>
+    return emitter.filterValue(function(v) return v >= x);
+  public static function inRange(emitter : Emitter<Float>, min : Float, max : Float) : Emitter<Float>
+    return emitter.filterValue(function(v) return v <= max && v >= min);
+  public static function insideRange(emitter : Emitter<Float>, min : Float, max : Float) : Emitter<Float>
+    return emitter.filterValue(function(v) return v < max && v > min);
 }
 
 class EmitterOptions {
@@ -587,6 +687,9 @@ class EmitterArrays {
           case End(false): stream.end();
         }}));
     });
+
+  public static function containerOf<T>(emitter : Emitter<Array<T>>, value : T) : Emitter<Array<T>>
+    return emitter.filterValue(function(arr) return arr.indexOf(value) >= 0);
 }
 
 class EmitterValues {
