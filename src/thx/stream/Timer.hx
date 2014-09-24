@@ -10,8 +10,8 @@ class Timer {
 
   public static function beacon(delay : Int)
     return Emitter.create(function(stream : Stream<Nil>) {
-      var id = T.repeat(stream.pulse.bind(Nil.nil), delay);
-      stream.addCleanUp(T.clear.bind(id));
+      var cancel = T.repeat(stream.pulse.bind(Nil.nil), delay);
+      stream.addCleanUp(cancel);
     });
 
   public static function sequenceNil<T>(repetitions : Int, delay : Int, build : Nil -> T)

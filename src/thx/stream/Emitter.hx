@@ -5,7 +5,6 @@ import thx.core.Error;
 import thx.core.Nil;
 #if !macro
 import thx.core.Timer in T;
-import thx.core.Timer.TimerID;
 #end
 import thx.promise.Promise;
 using thx.core.Options;
@@ -68,19 +67,19 @@ class Emitter<T> {
 #if !macro
   public function delay(time : Int)
     return new Emitter(function(stream) {
-      var id = T.delay(function() init(stream), time);
-      stream.addCleanUp(T.clear.bind(id));
+      var cancel = T.delay(function() init(stream), time);
+      stream.addCleanUp(cancel);
     });
 
   public function debounce(delay : Int)
     return new Emitter(function(stream) {
-      var id : TimerID = null;
-      stream.addCleanUp(function() T.clear(id));
+      var cancel = function() {};
+      stream.addCleanUp(function() cancel());
       init(new Stream(function(r : StreamValue<T>) {
         switch r {
           case Pulse(v):
-            T.clear(id);
-            id = T.delay(stream.pulse.bind(v), delay);
+            cancel();
+            cancel = T.delay(stream.pulse.bind(v), delay);
           case Failure(e): stream.fail(e);
           case End(true):  stream.cancel();
           case End(false): T.delay(stream.end, delay);
@@ -663,6 +662,7 @@ class EmitterBools {
 
 @:access(thx.stream.Emitter)
 class EmitterEmitters {
+  // TODO: is flatMap the right name here?
   public static function flatMap<T>(emitter : Emitter<Emitter<T>>) : Emitter<T>
     return new Emitter(function(stream) {
       emitter.init(new Stream(function(r : StreamValue<Emitter<T>>) {
