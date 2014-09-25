@@ -213,13 +213,13 @@ class TestEmitter extends Test {
 
   public function testMapFieldValue() {
     Timer.arrayToSequence([{ a : 1}, {a : 2}, {a : 3}], 3)
-      .mapField(a)
+      .plunk(a)
       .sign(assertExpectations([1,2,3]));
   }
 
   public function testMapFieldMethod() {
     Timer.arrayToSequence([{ a : function(x) return x * 1}, {a : function(x) return x * 2}, {a : function(x) return x * 3}], 3)
-      .mapField(a(2))
+      .plunk(a(2))
       .sign(assertExpectations([2,4,6]));
   }
 

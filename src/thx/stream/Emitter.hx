@@ -189,14 +189,14 @@ class Emitter<T> {
       }}));
     });
 
-  macro public function mapField<T>(emitter : haxe.macro.Expr.ExprOf<Emitter<T>>, field : haxe.macro.Expr) {
+  public function mapValue<TOut>(f : T -> TOut) : Emitter<TOut>
+    return map(function(v) return Promise.value(f(v)));
+
+  macro public function plunk<T>(emitter : haxe.macro.Expr.ExprOf<Emitter<T>>, field : haxe.macro.Expr) {
     var id = 'o.'+haxe.macro.ExprTools.toString(field),
         expr = haxe.macro.Context.parse(id, field.pos);
     return macro $e{emitter}.mapValue(function(o) return ${expr});
   }
-
-  public function mapValue<TOut>(f : T -> TOut) : Emitter<TOut>
-    return map(function(v) return Promise.value(f(v)));
 
   public function toOption() : Emitter<Option<T>>
     return mapValue(function(v) return null == v ? None : Some(v));
