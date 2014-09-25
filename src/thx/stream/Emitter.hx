@@ -192,11 +192,8 @@ class Emitter<T> {
   public function map<TOut>(f : T -> TOut) : Emitter<TOut>
     return mapPromise(function(v) return Promise.value(f(v)));
 
-  macro public function plunk<T>(emitter : haxe.macro.Expr.ExprOf<Emitter<T>>, field : haxe.macro.Expr) {
-    var id = 'o.'+haxe.macro.ExprTools.toString(field),
-        expr = haxe.macro.Context.parse(id, field.pos);
-    return macro $e{emitter}.map(function(o) return ${expr});
-  }
+  macro public function pluck<T>(emitter : haxe.macro.Expr.ExprOf<Emitter<T>>, field : haxe.macro.Expr)
+    return macro $e{emitter}.map(function(_) return ${field});
 
   public function toOption() : Emitter<Option<T>>
     return map(function(v) return null == v ? None : Some(v));
