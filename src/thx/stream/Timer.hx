@@ -9,7 +9,7 @@ class Timer {
     return beacon(delay).take(repetitions);
 
   public static function beacon(delay : Int)
-    return Emitter.create(function(stream : Stream<Nil>) {
+    return new Emitter(function(stream : Stream<Nil>) {
       var cancel = T.repeat(stream.pulse.bind(Nil.nil), delay);
       stream.addCleanUp(cancel);
     });

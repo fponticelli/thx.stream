@@ -11,14 +11,9 @@ using thx.core.Options;
 using thx.core.Tuple;
 
 class Emitter<T> {
-  public static function create<T>(init : Stream<T> -> Void) : Emitter<T> {
-    return new Emitter(init);
-  }
-
   var init : Stream<T> -> Void;
-  function new(init : Stream<T> -> Void) {
+  public function new(init : Stream<T> -> Void)
     this.init = init;
-  }
 
   public function sign(subscriber : StreamValue<T> -> Void) : IStream {
     var stream = new Stream(subscriber);
@@ -107,7 +102,7 @@ class Emitter<T> {
         });
       }
     }
-    return new Tuple2(Emitter.create(init), Emitter.create(init));
+    return new Tuple2(new Emitter(init), new Emitter(init));
   }
 #end
   public function map<TOut>(f : T -> Promise<TOut>) : Emitter<TOut>
