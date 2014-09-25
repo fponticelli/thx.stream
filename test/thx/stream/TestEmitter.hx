@@ -23,7 +23,7 @@ class TestEmitter extends Test {
   public function testMap() {
     Streams
       .ofArray([97,98,99])
-      .map(function(v) {
+      .mapPromise(function(v) {
         return Promise.value(String.fromCharCode(v));
       })
       .sign(assertExpectations(['a','b','c']));
@@ -52,13 +52,13 @@ class TestEmitter extends Test {
 
   public function testFilterValue() {
     Timer.sequencei(6, 10, function(i) return i+1)
-      .filterValue(function(v) return v % 2 == 0)
+      .filter(function(v) return v % 2 == 0)
       .sign(assertExpectations([2,4,6]));
   }
 
   public function testFilter() {
     Timer.sequencei(6, 10, function(i) return i+1)
-      .filter(function(v) return Promise.value(v % 2 == 0))
+      .filterPromise(function(v) return Promise.value(v % 2 == 0))
       .sign(assertExpectations([2,4,6]));
   }
   public function testConcat() {
@@ -202,7 +202,7 @@ class TestEmitter extends Test {
 
   public function testMapAndWindow() {
     Timer.arrayToSequence([1,2,3], 3)
-      .mapValue(function(v) return "" + (v-1))
+      .map(function(v) return "" + (v-1))
       .window(2, true)
       .sign(assertExpectations([
         ["0"],
@@ -311,7 +311,7 @@ class TestEmitter extends Test {
     var t = Streams.ofArray([for(i in 0...10) Math.random()])
       .split();
     t._0.zip(t._1)
-      .mapValue(function(t) return t._0 / t._1)
+      .map(function(t) return t._0 / t._1)
       .sign(assertExpectations([1.0,1,1,1,1,1,1,1,1,1]));
   }
 
