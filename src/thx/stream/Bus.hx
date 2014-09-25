@@ -19,6 +19,22 @@ class Bus<T> extends Emitter<T> {
     });
   }
 
+  inline public function cancel()
+    emit(End(true));
+
+  public function clearStreams()
+    for(stream in downStreams.copy())
+      stream.end();
+
+  public function clearEmitters()
+    for(stream in upStreams.copy())
+      stream.cancel();
+
+  public function clear() {
+    clearEmitters();
+    clearStreams();
+  }
+
   public function emit(value : StreamValue<T>) switch value {
     case Pulse(v):
       if(distinctValuesOnly) {
@@ -39,28 +55,12 @@ class Bus<T> extends Emitter<T> {
         stream.end();
   }
 
-  inline public function pulse(value : T)
-    emit(Pulse(value));
+  inline public function end()
+    emit(End(false));
 
   inline public function fail(error : Error)
     emit(Failure(error));
 
-  inline public function end()
-    emit(End(false));
-
-  inline public function cancel()
-    emit(End(true));
-
-  public function clearStreams()
-    for(stream in downStreams.copy())
-      stream.end();
-
-  public function clearEmitters()
-    for(stream in upStreams.copy())
-      stream.cancel();
-
-  public function clear() {
-    clearEmitters();
-    clearStreams();
-  }
+  inline public function pulse(value : T)
+    emit(Pulse(value));
 }

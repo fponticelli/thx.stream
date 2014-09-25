@@ -15,26 +15,22 @@ class Stream<T> implements IStream {
     this.canceled   = false;
   }
 
-  public function addCleanUp(f : Void -> Void) {
+  public function addCleanUp(f : Void -> Void)
     cleanUps.push(f);
-  }
-
-  public function pulse(v : T) {
-    subscriber(Pulse(v));
-  }
-
-  public function end() {
-    finalize(End(false));
-  }
 
   public function cancel() {
     canceled = true;
     finalize(End(true));
   }
 
-  public function fail(error : Error) {
+  public function end()
+    finalize(End(false));
+
+  public function fail(error : Error)
     finalize(Failure(error));
-  }
+
+  public function pulse(v : T)
+    subscriber(Pulse(v));
 
   function finalize(signal : StreamValue<T>) {
     if(finalized) return;
