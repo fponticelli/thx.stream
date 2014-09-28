@@ -11,6 +11,7 @@ class TestEmitter extends Test {
       .sign(assertExpectations([1,2,3]));
   }
 
+#if (js || swf)
   public function testCancelFromArray() {
     var stream = null;
     stream = Streams
@@ -19,6 +20,7 @@ class TestEmitter extends Test {
       .sign(assertExpectations([1,2],
         function(v) if(v == 2) stream.cancel(), true));
   }
+#end
 
   public function testMap() {
     Streams
@@ -49,7 +51,7 @@ class TestEmitter extends Test {
       .take(0)
       .sign(assertExpectations([]));
   }
-
+#if (js || swf)
   public function testFilterValue() {
     Timer.sequencei(6, 10, function(i) return i+1)
       .filter(function(v) return v % 2 == 0)
@@ -314,7 +316,7 @@ class TestEmitter extends Test {
       .map(function(t) return t._0 / t._1)
       .sign(assertExpectations([1.0,1,1,1,1,1,1,1,1,1]));
   }
-
+#end
   public function testDiffWithSeed() {
     Streams.ofArray([1,2,3,6])
       .diff(0, function(prev, next) return next * prev)
@@ -323,7 +325,7 @@ class TestEmitter extends Test {
 
   public function testDiffWithoutSeed() {
     Streams.ofArray([1,2,3,6])
-      .diff(function(prev, next) return next / prev)
-      .sign(assertExpectations([2.0,1.5,2]));
+      .diff(function(prev, next) return next * prev)
+      .sign(assertExpectations([2,6,18]));
   }
 }

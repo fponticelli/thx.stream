@@ -1,0 +1,9 @@
+-cp src
+-cp test
+-lib thx.core
+-lib thx.promise
+-lib utest
+-cs bin/cs
+-main TestAll
+
+#-cmd java -jar ./bin/java/TestAll.jar

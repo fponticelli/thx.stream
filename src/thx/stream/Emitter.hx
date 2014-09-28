@@ -5,9 +5,6 @@ using thx.core.Arrays;
 import thx.core.Error;
 import thx.core.Nil;
 using thx.core.Options;
-#if !macro
-import thx.core.Timer in T;
-#end
 using thx.core.Tuple;
 import thx.promise.Promise;
 
@@ -78,7 +75,7 @@ class Emitter<T> {
         var c = 0;
         return function(_) return ++c;
       })());
-#if !macro
+#if (js || swf)
   public function debounce(delay : Int)
     return new Emitter(function(stream) {
       var cancel = function() {};
@@ -87,24 +84,24 @@ class Emitter<T> {
         switch r {
           case Pulse(v):
             cancel();
-            cancel = T.delay(stream.pulse.bind(v), delay);
+            cancel = thx.core.Timer.delay(stream.pulse.bind(v), delay);
           case Failure(e): stream.fail(e);
           case End(true):  stream.cancel();
-          case End(false): T.delay(stream.end, delay);
+          case End(false): thx.core.Timer.delay(stream.end, delay);
         }
       }));
     });
 #end
 
-#if !macro
+#if (js || swf)
   public function delay(time : Int)
     return new Emitter(function(stream) {
-      var cancel = T.delay(function() init(stream), time);
+      var cancel = thx.core.Timer.delay(function() init(stream), time);
       stream.addCleanUp(cancel);
     });
 #end
 
-  public function diff<TOut>(?init : T, f : T -> T -> TOut) : Emitter<TOut>
+  public function diff<TOut>(?init : Null<T>, f : T -> T -> TOut) : Emitter<TOut>
     return window(2, null != init).map(function(a) {
         return if(a.length == 1)
           f(init, a[0]);
@@ -323,7 +320,7 @@ class Emitter<T> {
     return filter(function(v : T) return v == expected);
 
   // UTILITY
-#if !macro
+#if (js || swf)
   public function split() : Tuple2<Emitter<T>, Emitter<T>> {
     var inited  = false,
         streams = [];
