@@ -34,7 +34,7 @@ before_script:
 
 # Run the test!
 script:
-  - haxe hxml/thx.strean.${TARGET}.hxml
+  - haxe hxml/thx.stream.${TARGET}.hxml
 
 branches:
       only:
