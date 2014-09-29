@@ -147,7 +147,7 @@ class TestEmitter extends Test {
 
   public function testPair() {
     Timer.arrayToSequence([1,2,3], 3)
-      .pair(Timer.arrayToSequence([5,7], 4))
+      .pair(Timer.arrayToSequence([5,7], 3))
       .sign(assertExpectations([
         new Tuple2(1,5),
         new Tuple2(2,5),
