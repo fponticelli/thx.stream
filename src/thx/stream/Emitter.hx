@@ -282,7 +282,8 @@ class Emitter<T> {
       })(0));
 
   public function takeAt(index : Int) : Emitter<T>
-    return take(index + 1).last();
+    // cast is required by C#
+    return cast take(index + 1).last();
 
   public function takeLast(n : Int) : Emitter<T>
     return EmitterArrays.flatten(window(n).last());
