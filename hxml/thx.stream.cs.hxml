@@ -6,4 +6,4 @@
 -cs bin/cs
 -main TestAll
 
-#-cmd java -jar ./bin/java/TestAll.jar
+-cmd mono ./bin/cs/bin/TestAll.exe

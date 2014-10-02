@@ -116,7 +116,7 @@ class Emitter<T> {
     });
 
   public function previous() : Emitter<T>
-    return new Emitter(function(stream) {
+    return new Emitter(function(stream : Stream<T>) {
       var value : Null<T> = null,
           first = true;
       function pulse() {
@@ -459,7 +459,8 @@ class Emitter<T> {
 
 class Emitters {
   public static function skipNull<T>(emitter : Emitter<Null<T>>) : Emitter<T>
-    return emitter
+    // cast is required by C#
+    return cast emitter
       .filter(function(value) return null != value);
 
   public static function unique<T>(emitter : Emitter<T>) : Emitter<T>
@@ -656,7 +657,8 @@ class EmitterOptions {
   public static function filterOption<T>(emitter : Emitter<Option<T>>) : Emitter<T>
     return emitter
       .filter(function(opt) return opt.toBool())
-      .map(function(opt) return opt.toValue());
+      // cast is required by C#
+      .map(function(opt) return (opt.toValue() : T));
 
   public static function toBool<T>(emitter : Emitter<Option<T>>) : Emitter<Bool>
     return emitter
