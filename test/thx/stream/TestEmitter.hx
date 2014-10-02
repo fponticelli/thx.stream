@@ -34,7 +34,7 @@ class TestEmitter extends Test {
   public function testTakeUntil() {
     Streams
       .ofArray([1,2,3,4,5])
-      .takeUntil(function(v) return Promise.value(v < 4))
+      .takeUntil(function(v) return v < 4)
       .sign(assertExpectations([1,2,3]));
   }
 
@@ -44,13 +44,13 @@ class TestEmitter extends Test {
       .take(3)
       .sign(assertExpectations([1,2,3]));
   }
-
   public function testTakeZero() {
     Streams
       .ofArray([1,2,3,4,5])
       .take(0)
       .sign(assertExpectations([]));
   }
+
 #if (js || swf)
   public function testFilterValue() {
     Timer.sequencei(6, 10, function(i) return i+1)

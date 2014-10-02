@@ -276,33 +276,29 @@ class Emitter<T> {
       };
     }()));
 
-  public function take(count : Int)
-    return takeUntil({
-      var counter = 0;
-      function(_) return Promise.value(counter++ < count);
-    });
+  public function take(count : Int) : Emitter<T>
+    return takeUntil((function(counter : Int) : T -> Bool {
+        return function(_ : T) : Bool return counter++ < count;
+      })(0));
 
-  public function takeAt(index : Int)
+  public function takeAt(index : Int) : Emitter<T>
     return take(index + 1).last();
 
-  public function takeLast(n : Int)
+  public function takeLast(n : Int) : Emitter<T>
     return EmitterArrays.flatten(window(n).last());
 
   // TODO: ... have a look at those nasty instream
-  public function takeUntil(f : T -> Promise<Bool>) : Emitter<T>
-    return new Emitter(function(stream) {
+  public function takeUntil(f : T -> Bool) : Emitter<T>
+    return new Emitter(function(stream : Stream<T>) {
       var instream : Stream<T> = null;
       instream = new Stream(function(r : StreamValue<T>) switch r {
         case Pulse(v):
-          f(v).either(
-            function(c : Bool) if(c) {
+          if(f(v)) {
               stream.pulse(v);
-            } else {
-              instream.end();
-              stream.end();
-            },
-            stream.fail
-          );
+          } else {
+            instream.end();
+            stream.end();
+          }
         case Failure(e):
           instream.fail(e);
           stream.fail(e);
@@ -315,7 +311,6 @@ class Emitter<T> {
       });
       this.init(instream);
     });
-
   public function withValue(expected : T) : Emitter<T>
     return filter(function(v : T) return v == expected);
 

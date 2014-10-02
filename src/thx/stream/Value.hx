@@ -5,17 +5,18 @@ import thx.core.Options;
 
 // TODO: value lens
 class Value<T> extends Emitter<T> {
-  public static function createOption<T>(?value : T, ?equal : T -> T -> Bool) {
-    var def = null == value ? None : Some(value);
-    return new Value<Option<T>>(def, Options.equals.bind(_, _, equal));
+  #if java @:generic #end
+  public static function createOption<T>(?value : T, ?equals : T -> T -> Bool) {
+    var def = Options.toOption(value);
+    return new Value<Option<T>>(def, function(a, b) return Options.equals(a, b, equals));
   }
 
   var value : T;
   var downStreams : Array<Stream<T>>;
   var upStreams : Array<Stream<T>>;
-  var equal : T -> T -> Bool;
-  public function new(value : T, ?equal : T -> T -> Bool) {
-    this.equal = null == equal ? function(a, b) return a == b : equal;
+  var equals : T -> T -> Bool;
+  public function new(value : T, ?equals : T -> T -> Bool) {
+    this.equals = null == equals ? function(a, b) return a == b : equals;
     this.value = value;
     this.downStreams = [];
     this.upStreams = [];
@@ -30,7 +31,7 @@ class Value<T> extends Emitter<T> {
     return value;
 
   public function set(value : T) {
-    if(equal(this.value, value))
+    if(equals(this.value, value))
       return;
     this.value = value;
     update();
