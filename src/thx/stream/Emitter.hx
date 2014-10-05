@@ -75,7 +75,7 @@ class Emitter<T> {
         var c = 0;
         return function(_) return ++c;
       })());
-#if (js || swf)
+#if (js || swf || java)
   public function debounce(delay : Int)
     return new Emitter(function(stream) {
       var cancel = function() {};
@@ -91,9 +91,7 @@ class Emitter<T> {
         }
       }));
     });
-#end
 
-#if (js || swf)
   public function delay(time : Int)
     return new Emitter(function(stream) {
       var cancel = thx.core.Timer.delay(function() init(stream), time);
@@ -316,7 +314,7 @@ class Emitter<T> {
     return filter(function(v : T) return v == expected);
 
   // UTILITY
-#if (js || swf)
+#if (js || swf || java)
   public function split() : Tuple2<Emitter<T>, Emitter<T>> {
     var inited  = false,
         streams = [];

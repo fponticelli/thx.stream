@@ -16,7 +16,7 @@ class Test {
 
   function assertSubscriber<T>(expectations : Array<StreamValue<T>>, ?callback : T -> Void, ?done : Void -> Void, ?pos : haxe.PosInfos) : StreamValue<T> -> Void {
     callback = null == callback ? function(_) {} : callback;
-    done = null == done ? Assert.createAsync(250) : done;
+    done = null == done ? Assert.createAsync(10000) : done;
     return function(test : StreamValue<T>) {
       if(expectations.length == 0) {
         Assert.fail('no more expected values but reaceived $test');
