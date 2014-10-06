@@ -1,16 +1,18 @@
 language: php
 
 env:
-    matrix:
-    - TARGET=cpp
-    - TARGET=cs
-    - TARGET=java
-    - TARGET=js
-    - TARGET=neko
-    - TARGET=php
+  matrix:
+  - TARGET=cpp
+  - TARGET=cs
+  - TARGET=java
+  - TARGET=js
+  - TARGET=neko
+  - TARGET=php
 
 matrix:
   fast_finish: true
+  allow_failures:
+    - env: TARGET=java
 
 # Install Haxe and dependencies before running the test.
 before_script:
@@ -35,5 +37,5 @@ script:
   - haxe hxml/thx.stream.${TARGET}.hxml
 
 branches:
-      only:
-          - master
+  only:
+    - master
