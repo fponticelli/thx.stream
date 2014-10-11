@@ -1,9 +1,10 @@
 -cp src
 -cp test
+-lib utest
 -lib thx.core
 -lib thx.promise
--lib utest
--cpp bin/cpp
+-lib hxjava
+-java bin/java
 -main TestAll
-
--cmd ./bin/cpp/TestAll
+-D thx-stream
+-debug

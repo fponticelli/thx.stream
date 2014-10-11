@@ -1,9 +1,8 @@
 -cp src
 -cp test
+-lib utest
 -lib thx.core
 -lib thx.promise
--lib utest
--neko bin/test.n
+-js bin/js.js
 -main TestAll
-
--cmd neko ./bin/test.n
+-D thx-stream

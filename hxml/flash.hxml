@@ -1,9 +1,10 @@
 -cp src
 -cp test
+-lib utest
 -lib thx.core
 -lib thx.promise
--lib utest
--cs bin/cs
+-swf bin/flash.swf
 -main TestAll
-
--cmd mono ./bin/cs/bin/TestAll.exe
+-D thx-stream
+-debug
+-D fdb

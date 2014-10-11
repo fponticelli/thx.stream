@@ -1,9 +1,8 @@
 -cp src
 -cp test
+-lib utest
 -lib thx.core
 -lib thx.promise
--lib utest
--php bin/php
+-neko bin/neko.n
 -main TestAll
-
--cmd php ./bin/php/index.php
+-D thx-stream

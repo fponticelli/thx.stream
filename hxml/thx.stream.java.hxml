@@ -1,9 +1,0 @@
--cp src
--cp test
--lib thx.core
--lib thx.promise
--lib utest
--java bin/java
--main TestAll
-
--cmd java -jar ./bin/java/TestAll.jar
