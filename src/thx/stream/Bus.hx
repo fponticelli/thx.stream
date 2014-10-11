@@ -44,9 +44,6 @@ class Bus<T> extends Emitter<T> {
       }
       for(stream in downStreams.copy())
         stream.pulse(v);
-    case Failure(e):
-      for(stream in downStreams.copy())
-        stream.fail(e);
     case End(true):
       for(stream in downStreams.copy())
         stream.cancel();
@@ -57,9 +54,6 @@ class Bus<T> extends Emitter<T> {
 
   inline public function end()
     emit(End(false));
-
-  inline public function fail(error : Error)
-    emit(Failure(error));
 
   inline public function pulse(value : T)
     emit(Pulse(value));

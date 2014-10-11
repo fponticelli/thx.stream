@@ -1,6 +1,6 @@
 package thx.stream;
 
-import thx.promise.Promise;
+import thx.promise.Future;
 import thx.core.Tuple;
 using thx.stream.Emitter;
 
@@ -25,8 +25,8 @@ class TestEmitter extends Test {
   public function testMap() {
     Streams
       .ofArray([97,98,99])
-      .mapPromise(function(v) {
-        return Promise.value(String.fromCharCode(v));
+      .mapFuture(function(v) {
+        return Future.value(String.fromCharCode(v));
       })
       .sign(assertExpectations(['a','b','c']));
   }
@@ -60,7 +60,7 @@ class TestEmitter extends Test {
 
   public function testFilter() {
     Timer.sequencei(6, 10, function(i) return i+1)
-      .filterPromise(function(v) return Promise.value(v % 2 == 0))
+      .filterFuture(function(v) return Future.value(v % 2 == 0))
       .sign(assertExpectations([2,4,6]));
   }
 

@@ -2,11 +2,10 @@ package thx.stream;
 
 import haxe.ds.Option;
 using thx.core.Arrays;
-import thx.core.Error;
 import thx.core.Nil;
 using thx.core.Options;
 using thx.core.Tuple;
-import thx.promise.Promise;
+import thx.promise.Future;
 
 class Emitter<T> {
   var init : Stream<T> -> Void;
@@ -20,7 +19,6 @@ class Emitter<T> {
     var stream : Stream<T> = new Stream(null);
     stream.subscriber = function(r) switch r {
       case Pulse(v): value.set(v);
-      case Failure(e): stream.fail(e);
       case End(c): if(c) stream.cancel() else stream.end();
     };
     value.upStreams.push(stream);
@@ -46,13 +44,11 @@ class Emitter<T> {
     return stream;
   }
 
-  public function subscribe(?pulse : T -> Void, ?fail : Error -> Void, ?end : Bool -> Void) : IStream {
+  public function subscribe(?pulse : T -> Void, ?end : Bool -> Void) : IStream {
     pulse = null != pulse ? pulse : function(_) {};
-    fail  = null != fail  ? fail  : function(_) {};
     end   = null != end   ? end   : function(_) {};
     var stream = new Stream(function(r) switch r {
       case Pulse(v):   pulse(v);
-      case Failure(e): fail(e);
       case End(c):     end(c);
     });
     init(stream);
@@ -64,7 +60,6 @@ class Emitter<T> {
     return new Emitter(function(stream) {
       init(new Stream(function(r) switch r {
         case Pulse(v):    stream.pulse(v);
-        case Failure(e):  stream.fail(e);
         case End(true):   stream.cancel();
         case End(false):  other.init(stream);
       }));
@@ -85,7 +80,6 @@ class Emitter<T> {
           case Pulse(v):
             cancel();
             cancel = thx.core.Timer.delay(stream.pulse.bind(v), delay);
-          case Failure(e): stream.fail(e);
           case End(true):  stream.cancel();
           case End(false): thx.core.Timer.delay(stream.end, delay);
         }
@@ -129,7 +123,6 @@ class Emitter<T> {
         case Pulse(v):
           pulse();
           value = v;
-        case Failure(e):  stream.fail(e);
         case End(true):   stream.cancel();
         case End(false):  stream.end();
       }));
@@ -141,7 +134,6 @@ class Emitter<T> {
         case Pulse(v):
           acc = f(acc, v);
           stream.pulse(acc);
-        case Failure(e):  stream.fail(e);
         case End(true):   stream.cancel();
         case End(false):  stream.end();
       }));
@@ -161,7 +153,6 @@ class Emitter<T> {
         case Pulse(v):
           buf.push(v);
           pulse();
-        case Failure(e):  stream.fail(e);
         case End(true):   stream.cancel();
         case End(false):  stream.end();
       }));
@@ -169,23 +160,16 @@ class Emitter<T> {
 
 
   // TRANSFORM VALUES
-  public function mapPromise<TOut>(f : T -> Promise<TOut>) : Emitter<TOut>
-    return new Emitter(function(stream) {
-      init(new Stream(function(r) {
-        switch r {
-        case Pulse(v):
-          f(v).either(
-            function(vout) stream.pulse(vout),
-            function(err)  stream.fail(err)
-          );
-        case Failure(e):   stream.fail(e);
-        case End(true):    stream.cancel();
-        case End(false):   stream.end();
-      }}));
-    });
+  public function mapFuture<TOut>(f : T -> Future<TOut>) : Emitter<TOut>
+    return new Emitter(function(stream)
+      init(new Stream(function(r) switch r {
+        case Pulse(v):   f(v).then(stream.pulse);
+        case End(true):  stream.cancel();
+        case End(false): stream.end();
+      })));
 
   public function map<TOut>(f : T -> TOut) : Emitter<TOut>
-    return mapPromise(function(v) return Promise.value(f(v)));
+    return mapFuture(function(v) return Future.value(f(v)));
 
   macro public function pluck<T>(emitter : haxe.macro.Expr.ExprOf<Emitter<T>>, expr : haxe.macro.Expr)
     return macro $e{emitter}.map(function(_) return ${expr});
@@ -202,22 +186,17 @@ class Emitter<T> {
     return map(function(_) return value);
 
   // FILTER STREAM
-  public function filterPromise(f : T -> Promise<Bool>) : Emitter<T>
+  public function filterFuture(f : T -> Future<Bool>) : Emitter<T>
     return new Emitter(function(stream) {
       init(new Stream(function(r) switch r {
-        case Pulse(v):
-          f(v).either(
-            function(c)   if(c) stream.pulse(v),
-            function(err) stream.fail(err)
-          );
-        case Failure(e):  stream.fail(e);
-        case End(true):   stream.cancel();
-        case End(false):  stream.end();
+        case Pulse(v):   f(v).then(function(c) if(c) stream.pulse(v));
+        case End(true):  stream.cancel();
+        case End(false): stream.end();
       }));
     });
 
   public function filter(f : T -> Bool) : Emitter<T>
-    return filterPromise(function(v) return Promise.value(f(v)));
+    return filterFuture(function(v) return Future.value(f(v)));
 
   public function first()
     return take(1);
@@ -242,7 +221,6 @@ class Emitter<T> {
       init(new Stream(function(r) {
         switch r {
         case Pulse(v):   last = v;
-        case Failure(e): stream.fail(e);
         case End(true):  stream.cancel();
         case End(false):
           stream.pulse(last);
@@ -298,9 +276,6 @@ class Emitter<T> {
             instream.end();
             stream.end();
           }
-        case Failure(e):
-          instream.fail(e);
-          stream.fail(e);
         case End(true):
           instream.cancel();
           stream.cancel();
@@ -327,8 +302,7 @@ class Emitter<T> {
           this.init(new Stream(function(r) {
             switch r {
               case Pulse(v):   for(s in streams) s.pulse(v);
-              case Failure(e): for(s in streams) s.faile(e);
-              case End(true):  for(s in streams) s.canel();
+              case End(true):  for(s in streams) s.cancel();
               case End(false): for(s in streams) s.end();
             };
           }));
@@ -371,7 +345,6 @@ class Emitter<T> {
         case Pulse(v):
           _0 = v;
           pulse();
-        case Failure(e):  stream.fail(e);
         case End(true):   stream.cancel();
         case End(false):  stream.end();
       }));
@@ -379,7 +352,6 @@ class Emitter<T> {
         case Pulse(v):
           _1 = v;
           pulse();
-        case Failure(e):  stream.fail(e);
         case End(true):   stream.cancel();
         case End(false):  stream.end();
       }));
@@ -402,7 +374,6 @@ class Emitter<T> {
       init(new Stream(function(r) switch r {
         case Pulse(v):
           _0 = v;
-        case Failure(e):  stream.fail(e);
         case End(true):   stream.cancel();
         case End(false):  stream.end();
       }));
@@ -410,7 +381,6 @@ class Emitter<T> {
         case Pulse(v):
           _1 = v;
           pulse();
-        case Failure(e):  stream.fail(e);
         case End(true):   stream.cancel();
         case End(false):  stream.end();
       }));
@@ -436,7 +406,6 @@ class Emitter<T> {
         case Pulse(v):
           _0.push(v);
           pulse();
-        case Failure(e):  stream.fail(e);
         case End(true):   stream.cancel();
         case End(false):  stream.end();
       }));
@@ -444,7 +413,6 @@ class Emitter<T> {
         case Pulse(v):
           _1.push(v);
           pulse();
-        case Failure(e):  stream.fail(e);
         case End(true):   stream.cancel();
         case End(false):  stream.end();
       }));
@@ -635,7 +603,7 @@ class EmitterFloats {
 }
 
 class EmitterOptions {
-  public static function either<T>(emitter : Emitter<Option<T>>, ?some : T -> Void, ?none : Void -> Void, ?fail : Error -> Void, ?end : Bool -> Void) {
+  public static function either<T>(emitter : Emitter<Option<T>>, ?some : T -> Void, ?none : Void -> Void, ?end : Bool -> Void) {
     if(null == some) some = function(_) {};
     if(null == none) none = function() {};
     return emitter.subscribe(
@@ -643,7 +611,6 @@ class EmitterOptions {
           case Some(v) : some(v);
           case None: none();
         },
-        fail,
         end
       );
   }
@@ -676,7 +643,6 @@ class EmitterEmitters {
       emitter.init(new Stream(function(r : StreamValue<Emitter<T>>) {
         switch r {
           case Pulse(em):  em.init(stream);
-          case Failure(e): stream.fail(e);
           case End(true):  stream.cancel();
           case End(false): stream.end();
         }}));
@@ -693,7 +659,6 @@ class EmitterArrays {
       emitter.init(new Stream(function(r : StreamValue<Array<T>>) {
         switch r {
           case Pulse(arr): arr.map(stream.pulse);
-          case Failure(e): stream.fail(e);
           case End(true):  stream.cancel();
           case End(false): stream.end();
         }}));

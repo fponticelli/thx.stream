@@ -1,7 +1,5 @@
 package thx.stream;
 
-import thx.core.Error;
-
 class Stream<T> implements IStream {
 
   var subscriber : StreamValue<T> -> Void;
@@ -25,9 +23,6 @@ class Stream<T> implements IStream {
 
   public function end()
     finalize(End(false));
-
-  public function fail(error : Error)
-    finalize(Failure(error));
 
   public function pulse(v : T)
     subscriber(Pulse(v));
