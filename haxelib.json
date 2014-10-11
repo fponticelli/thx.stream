@@ -5,8 +5,8 @@
   "classPath": "src",
   "tags": ["thx", "stream", "async", "cross"],
   "description": "Streams for Haxe",
-  "releasenote": "many additions and fixes for C# and Java",
-  "version": "0.2.0",
+  "releasenote": "API update",
+  "version": "0.3.0",
   "contributors": ["fponticelli"],
   "dependencies": {
     "thx.core": "",
