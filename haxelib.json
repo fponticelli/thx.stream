@@ -5,8 +5,8 @@
   "classPath": "src",
   "tags": ["thx", "stream", "async", "cross"],
   "description": "Streams for Haxe",
-  "releasenote": "API update",
-  "version": "0.3.0",
+  "releasenote": "Better documentation",
+  "version": "0.3.1",
   "contributors": ["fponticelli"],
   "dependencies": {
     "thx.core": "",
