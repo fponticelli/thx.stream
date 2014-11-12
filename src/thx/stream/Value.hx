@@ -2,6 +2,7 @@ package thx.stream;
 
 import haxe.ds.Option;
 import thx.core.Options;
+import thx.core.Functions;
 
 // TODO: value lens
 class Value<T> extends Emitter<T> {
@@ -16,7 +17,7 @@ class Value<T> extends Emitter<T> {
   var upStreams : Array<Stream<T>>;
   var equals : T -> T -> Bool;
   public function new(value : T, ?equals : T -> T -> Bool) {
-    this.equals = null == equals ? function(a, b) return a == b : equals;
+    this.equals = null == equals ? Functions.equality : equals;
     this.value = value;
     this.downStreams = [];
     this.upStreams = [];
