@@ -198,6 +198,9 @@ class Emitter<T> {
   public function filter(f : T -> Bool) : Emitter<T>
     return filterFuture(function(v) return Future.value(f(v)));
 
+  macro public function filterPluck<T>(emitter : haxe.macro.Expr.ExprOf<Emitter<T>>, expr : haxe.macro.Expr)
+    return macro $e{emitter}.filter(function(_) return $e{expr});
+
   public function first()
     return take(1);
 
