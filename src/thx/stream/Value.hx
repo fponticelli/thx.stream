@@ -31,11 +31,9 @@ class Value<T> extends Emitter<T> {
   public function get() : T
     return value;
 
-  public function set(value : T) {
-    if(equals(this.value, value))
-      return;
-    this.value = value;
-    update();
+  public function clear() {
+    clearEmitters();
+    clearStreams();
   }
 
   public function clearStreams()
@@ -46,9 +44,11 @@ class Value<T> extends Emitter<T> {
     for(stream in upStreams.copy())
       stream.cancel();
 
-  public function clear() {
-    clearEmitters();
-    clearStreams();
+  public function set(value : T) {
+    if(equals(this.value, value))
+      return;
+    this.value = value;
+    update();
   }
 
   function update()

@@ -22,6 +22,11 @@ class Bus<T> extends Emitter<T> {
   inline public function cancel()
     emit(End(true));
 
+  public function clear() {
+    clearEmitters();
+    clearStreams();
+  }
+
   public function clearStreams()
     for(stream in downStreams.copy())
       stream.end();
@@ -29,11 +34,6 @@ class Bus<T> extends Emitter<T> {
   public function clearEmitters()
     for(stream in upStreams.copy())
       stream.cancel();
-
-  public function clear() {
-    clearEmitters();
-    clearStreams();
-  }
 
   public function emit(value : StreamValue<T>) switch value {
     case Pulse(v):

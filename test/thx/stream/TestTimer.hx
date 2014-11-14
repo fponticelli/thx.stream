@@ -7,7 +7,7 @@ class TestTimer extends Test {
     var counter = 0,
         stream  = null;
     stream = Timer
-      .beacon(10)
+      .repeat(10)
       .sign(
         assertExpectations(
           [nil,nil,nil],

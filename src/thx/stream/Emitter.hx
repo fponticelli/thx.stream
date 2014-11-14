@@ -160,6 +160,9 @@ class Emitter<T> {
 
 
   // TRANSFORM VALUES
+  public function map<TOut>(f : T -> TOut) : Emitter<TOut>
+    return mapFuture(function(v) return Future.value(f(v)));
+
   public function mapFuture<TOut>(f : T -> Future<TOut>) : Emitter<TOut>
     return new Emitter(function(stream)
       init(new Stream(function(r) switch r {
@@ -167,9 +170,6 @@ class Emitter<T> {
         case End(true):  stream.cancel();
         case End(false): stream.end();
       })));
-
-  public function map<TOut>(f : T -> TOut) : Emitter<TOut>
-    return mapFuture(function(v) return Future.value(f(v)));
 
   macro public function pluck<T>(emitter : haxe.macro.Expr.ExprOf<Emitter<T>>, expr : haxe.macro.Expr)
     return macro $e{emitter}.map(function(_) return ${expr});
@@ -186,6 +186,9 @@ class Emitter<T> {
     return map(function(_) return value);
 
   // FILTER STREAM
+  public function filter(f : T -> Bool) : Emitter<T>
+    return filterFuture(function(v) return Future.value(f(v)));
+
   public function filterFuture(f : T -> Future<Bool>) : Emitter<T>
     return new Emitter(function(stream) {
       init(new Stream(function(r) switch r {
@@ -194,9 +197,6 @@ class Emitter<T> {
         case End(false): stream.end();
       }));
     });
-
-  public function filter(f : T -> Bool) : Emitter<T>
-    return filterFuture(function(v) return Future.value(f(v)));
 
   macro public function filterPluck<T>(emitter : haxe.macro.Expr.ExprOf<Emitter<T>>, expr : haxe.macro.Expr)
     return macro $e{emitter}.filter(function(_) return $e{expr});
@@ -291,45 +291,6 @@ class Emitter<T> {
   public function withValue(expected : T) : Emitter<T>
     return filter(function(v : T) return v == expected);
 
-  // UTILITY
-#if (js || swf || java)
-  public function split() : Tuple2<Emitter<T>, Emitter<T>> {
-    var inited  = false,
-        streams = [];
-    function init(stream) {
-      streams.push(stream);
-      if(!inited) {
-        inited = true;
-        // the delay ensures that the second stream has the time to be implemented
-        thx.core.Timer.immediate(function() {
-          this.init(new Stream(function(r) {
-            switch r {
-              case Pulse(v):   for(s in streams) s.pulse(v);
-              case End(true):  for(s in streams) s.cancel();
-              case End(false): for(s in streams) s.end();
-            };
-          }));
-        });
-      }
-    }
-    return new Tuple2(new Emitter(init), new Emitter(init));
-  }
-#end
-
-  public function audit(handler : T -> Void) : Emitter<T>
-    return map(function(v) {
-      handler(v);
-      return v;
-    });
-
-  public function log(?prefix : String, ?posInfo : haxe.PosInfos) {
-    prefix = prefix == null ? '': '${prefix}: ';
-    return map(function(v) {
-      haxe.Log.trace('$prefix$v', posInfo);
-      return v;
-    });
-  }
-
   // AGGREGATE
   public function pair<TOther>(other : Emitter<TOther>) : Emitter<Tuple2<T, TOther>>
     return new Emitter(function(stream) {
@@ -420,6 +381,45 @@ class Emitter<T> {
         case End(false):  stream.end();
       }));
     });
+
+  // UTILITY
+  public function audit(handler : T -> Void) : Emitter<T>
+    return map(function(v) {
+      handler(v);
+      return v;
+    });
+
+  public function log(?prefix : String, ?posInfo : haxe.PosInfos) {
+    prefix = prefix == null ? '': '${prefix}: ';
+    return map(function(v) {
+      haxe.Log.trace('$prefix$v', posInfo);
+      return v;
+    });
+  }
+
+#if (js || swf || java)
+  public function split() : Tuple2<Emitter<T>, Emitter<T>> {
+    var inited  = false,
+        streams = [];
+    function init(stream) {
+      streams.push(stream);
+      if(!inited) {
+        inited = true;
+        // the delay ensures that the second stream has the time to be implemented
+        thx.core.Timer.immediate(function() {
+          this.init(new Stream(function(r) {
+            switch r {
+              case Pulse(v):   for(s in streams) s.pulse(v);
+              case End(true):  for(s in streams) s.cancel();
+              case End(false): for(s in streams) s.end();
+            };
+          }));
+        });
+      }
+    }
+    return new Tuple2(new Emitter(init), new Emitter(init));
+  }
+#end
 }
 
 class Emitters {
