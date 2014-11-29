@@ -171,7 +171,7 @@ class TestEmitter extends Test {
 
   public function testSampleBy() {
     Timer.arrayToSequence([1,2,3,4], 3)
-      .sampleBy(Timer.arrayToSequence([5,7], 4))
+      .sampleBy(Timer.arrayToSequence([5,7], 3))
       .sign(assertExpectations([
         new Tuple2(1,5),
         new Tuple2(2,7)
