@@ -6,7 +6,7 @@
   "tags": ["thx", "stream", "async", "cross"],
   "description": "Stream library for Haxe.",
   "releasenote": "Aded .filterPluck() and reordered code",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "contributors": ["fponticelli"],
   "dependencies": {
     "thx.core": "",
