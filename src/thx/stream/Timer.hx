@@ -1,7 +1,7 @@
 package thx.stream;
 
-import thx.core.Nil;
-import thx.core.Timer in T;
+import thx.Nil;
+import thx.Timer in T;
 
 class Timer {
   public static function arrayToSequence<T>(arr : Array<T>, delay : Int)

@@ -1,8 +1,8 @@
 package thx.stream;
 
 import haxe.ds.Option;
-import thx.core.Options;
-import thx.core.Functions;
+import thx.Options;
+import thx.Functions;
 
 // TODO: value lens
 class Value<T> extends Emitter<T> {

@@ -1,6 +1,6 @@
 package thx.stream;
 
-import thx.core.Nil;
+import thx.Nil;
 
 class TestTimer extends Test {
   public function testBeacon() {

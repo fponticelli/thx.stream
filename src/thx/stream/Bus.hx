@@ -1,6 +1,6 @@
 package thx.stream;
 
-import thx.core.Error;
+import thx.Error;
 
 class Bus<T> extends Emitter<T> {
   var downStreams : Array<Stream<T>>;

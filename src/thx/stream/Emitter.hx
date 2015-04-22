@@ -1,10 +1,10 @@
 package thx.stream;
 
 import haxe.ds.Option;
-using thx.core.Arrays;
-import thx.core.Nil;
-using thx.core.Options;
-using thx.core.Tuple;
+using thx.Arrays;
+import thx.Nil;
+using thx.Options;
+using thx.Tuple;
 import thx.promise.Future;
 
 class Emitter<T> {
@@ -79,16 +79,16 @@ class Emitter<T> {
         switch r {
           case Pulse(v):
             cancel();
-            cancel = thx.core.Timer.delay(stream.pulse.bind(v), delay);
+            cancel = thx.Timer.delay(stream.pulse.bind(v), delay);
           case End(true):  stream.cancel();
-          case End(false): thx.core.Timer.delay(stream.end, delay);
+          case End(false): thx.Timer.delay(stream.end, delay);
         }
       }));
     });
 
   public function delay(time : Int)
     return new Emitter(function(stream) {
-      var cancel = thx.core.Timer.delay(function() init(stream), time);
+      var cancel = thx.Timer.delay(function() init(stream), time);
       stream.addCleanUp(cancel);
     });
 #end
@@ -406,7 +406,7 @@ class Emitter<T> {
       if(!inited) {
         inited = true;
         // the delay ensures that the second stream has the time to be implemented
-        thx.core.Timer.immediate(function() {
+        thx.Timer.immediate(function() {
           this.init(new Stream(function(r) {
             switch r {
               case Pulse(v):   for(s in streams) s.pulse(v);

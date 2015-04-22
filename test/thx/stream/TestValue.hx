@@ -1,7 +1,7 @@
 package thx.stream;
 
 import utest.Assert;
-import thx.core.Nil;
+import thx.Nil;
 import thx.stream.Value;
 import thx.promise.Promise;
 

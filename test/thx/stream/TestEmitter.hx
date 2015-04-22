@@ -1,7 +1,7 @@
 package thx.stream;
 
 import thx.promise.Future;
-import thx.core.Tuple;
+import thx.Tuple;
 using thx.stream.Emitter;
 
 class TestEmitter extends Test {
