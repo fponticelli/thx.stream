@@ -3,9 +3,9 @@
 -lib utest
 -lib thx.core
 -lib thx.promise
--js bin/js.js
+-lib hxjava
+-java bin/java
 -main TestAll
 -D thx-stream
 
--cmd node bin/js.js
--cmd phantomjs bin/js.js
+-cmd java -jar bin/java/TestAll.jar

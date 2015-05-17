@@ -3,9 +3,8 @@
 -lib utest
 -lib thx.core
 -lib thx.promise
--js bin/js.js
+-neko bin/neko.n
 -main TestAll
 -D thx-stream
 
--cmd node bin/js.js
--cmd phantomjs bin/js.js
+-cmd neko bin/neko.n
