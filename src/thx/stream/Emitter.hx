@@ -218,7 +218,7 @@ class Emitter<T> {
     });
   }
 
-  public function last()
+  public function last() : Emitter<T>
     return new Emitter(function(stream) {
       var last : Null<T> = null;
       init(new Stream(function(r) {
