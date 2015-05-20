@@ -464,6 +464,9 @@ class EmitterStrings {
         }
       };
     })());
+
+  public static function join(emitter : Emitter<String>, sep : String) : Emitter<String>
+    return emitter.reduce("", function(acc, v) return acc + sep + v);
 }
 
 class EmitterInts {
