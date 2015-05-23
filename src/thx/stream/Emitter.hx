@@ -422,6 +422,30 @@ class Emitter<T> {
 #end
 }
 
+class EagerEmitter<T> extends Emitter<T> {
+  var stack : Array<T>;
+  var conclusion : Int;
+  public function new(init : Stream<T> -> Void) {
+    super(init);
+    stack = [];
+    conclusion = -1;
+    subscribe(
+      function(p) stack.push(p),
+      function(c) conclusion = c ? 1 : 0
+    );
+  }
+
+  override public function sign(subscriber : StreamValue<T> -> Void) : IStream {
+    var stream = super.sign(subscriber);
+    for(v in stack) {
+      subscriber(Pulse(v));
+    }
+    if(conclusion >= 0)
+      subscriber(End(conclusion == 1));
+    return stream;
+  }
+}
+
 class Emitters {
   public static function skipNull<T>(emitter : Emitter<Null<T>>) : Emitter<T>
     // cast is required by C#
