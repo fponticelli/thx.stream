@@ -6,6 +6,8 @@ import thx.Nil;
 using thx.Options;
 using thx.Tuple;
 import thx.promise.Future;
+import thx.promise.Promise;
+import haxe.io.Bytes;
 
 class Emitter<T> {
   var init : Stream<T> -> Void;
@@ -464,6 +466,19 @@ class Emitters {
         }
       };
     })());
+}
+
+class EmitterBytes {
+	public static function toPromise(emitter : Emitter<Bytes>) : Promise<Bytes>
+		return Promise.create(function(resolve, reject) {
+			var buf = new haxe.io.BytesBuffer();
+			emitter.subscribe(
+				function(b) buf.addBytes(b, 0, b.length),
+				function(cancel)
+					if(cancel) reject(new thx.Error("Data stream has been cancelled"))
+					else       resolve(buf.getBytes())
+			);
+		});
 }
 
 class EmitterStrings {
