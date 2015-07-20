@@ -14,7 +14,7 @@ class Streams {
   }
 }
 
-class StreamArrays {
+class PromiseArrays {
   public static function toStream<T>(promise : Promise<Array<T>>) : Emitter<T> {
     return new Emitter(function(stream) {
       promise
