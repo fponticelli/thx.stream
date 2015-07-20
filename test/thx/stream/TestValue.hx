@@ -4,6 +4,7 @@ import utest.Assert;
 import thx.Nil;
 import thx.stream.Value;
 import thx.promise.Promise;
+using thx.stream.Streams;
 
 class TestValue extends Test {
   public function testBasic() {
@@ -29,7 +30,7 @@ class TestValue extends Test {
   public function testFeed() {
     var value = new Value(10);
     value.sign(assertExpectations([10,1,2,3]));
-    Streams.ofArray([1,2,3]).feed(value);
+    [1,2,3].toStream().feed(value);
     value.clear(); // required because feeding termination doesn't propagate to down streams
   }
 }

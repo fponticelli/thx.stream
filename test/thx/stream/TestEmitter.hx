@@ -3,19 +3,19 @@ package thx.stream;
 import thx.promise.Future;
 import thx.Tuple;
 using thx.stream.Emitter;
+using thx.stream.Streams;
+using thx.Functions;
 
 class TestEmitter extends Test {
   public function testFromArray() {
-    Streams
-      .ofArray([1,2,3])
+    [1,2,3].toStream()
       .sign(assertExpectations([1,2,3]));
   }
 
 #if (js || swf || javas)
   public function testCancelFromArray() {
     var stream = null;
-    stream = Streams
-      .ofArray([1,2,3])
+    stream = [1,2,3].toStream()
       .delay(0)
       .sign(assertExpectations([1,2],
         function(v) if(v == 2) stream.cancel(), true));
@@ -23,8 +23,7 @@ class TestEmitter extends Test {
 #end
 
   public function testMap() {
-    Streams
-      .ofArray([97,98,99])
+    [97,98,99].toStream()
       .mapFuture(function(v) {
         return Future.value(String.fromCharCode(v));
       })
@@ -32,21 +31,18 @@ class TestEmitter extends Test {
   }
 
   public function testTakeUntil() {
-    Streams
-      .ofArray([1,2,3,4,5])
+    [1,2,3,4,5].toStream()
       .takeUntil(function(v) return v < 4)
       .sign(assertExpectations([1,2,3]));
   }
 
   public function testTake() {
-    Streams
-      .ofArray([1,2,3,4,5])
+    [1,2,3,4,5].toStream()
       .take(3)
       .sign(assertExpectations([1,2,3]));
   }
   public function testTakeZero() {
-    Streams
-      .ofArray([1,2,3,4,5])
+    [1,2,3,4,5].toStream()
       .take(0)
       .sign(assertExpectations([]));
   }
@@ -315,7 +311,7 @@ class TestEmitter extends Test {
   }
 
   public function testSplit() {
-    var t = Streams.ofArray([for(i in 0...10) Math.random()])
+    var t = [for(i in 0...10) Math.random()].toStream()
       .split();
     t._0.zip(t._1)
       .map(function(t) return t._0 / t._1)
@@ -323,13 +319,13 @@ class TestEmitter extends Test {
   }
 #end
   public function testDiffWithSeed() {
-    Streams.ofArray([1,2,3,6])
+    [1,2,3,6].toStream()
       .diff(0, function(prev, next) return next * prev)
       .sign(assertExpectations([0,2,6,18]));
   }
 
   public function testDiffWithoutSeed() {
-    Streams.ofArray([1,2,3,6])
+    [1,2,3,6].toStream()
       .diff(function(prev, next) return next * prev)
       .sign(assertExpectations([2,6,18]));
   }
