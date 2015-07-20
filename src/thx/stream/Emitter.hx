@@ -173,9 +173,6 @@ class Emitter<T> {
         case End(false): stream.end();
       })));
 
-  macro public function pluck<T>(emitter : haxe.macro.Expr.ExprOf<Emitter<T>>, expr : haxe.macro.Expr)
-    return macro $e{emitter}.map(function(_) return ${expr});
-
   public function toOption() : Emitter<Option<T>>
     return map(function(v) return null == v ? None : Some(v));
   public function toNil() : Emitter<Nil>
@@ -200,8 +197,6 @@ class Emitter<T> {
       }));
     });
 
-  macro public function filterPluck<T>(emitter : haxe.macro.Expr.ExprOf<Emitter<T>>, expr : haxe.macro.Expr)
-    return macro $e{emitter}.filter(function(_) return $e{expr});
 
   public function first()
     return take(1);
