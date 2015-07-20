@@ -197,6 +197,24 @@ class Emitter<T> {
       }));
     });
 
+  public function filterPromise(f : T -> Promise<Bool>) : Emitter<T>
+    return new Emitter(function(stream) {
+      init(new Stream(function(r) switch r {
+        case Pulse(v):
+          f(v)
+            .success(function(c) {
+              if(c && !stream.canceled)
+                stream.pulse(v);
+            })
+            .failure(function(e) {
+              throw e;
+            });
+        case End(true):
+          stream.cancel();
+        case End(false):
+          stream.end();
+      }));
+    });
 
   public function first()
     return take(1);
@@ -461,19 +479,34 @@ class Emitters {
         }
       };
     })());
+
+  public static function toPromise<T>(emitter : Emitter<T>) : Promise<Array<T>>
+    return Promise.create(function(resolve, reject) {
+      var arr = [];
+      emitter.subscribe(
+        function(v) {
+          arr.push(v);
+        },
+        function(c) {
+          if(c)
+            reject(new thx.Error('stream has been canceled'));
+          else
+            resolve(arr);
+        });
+    });
 }
 
 class EmitterBytes {
-	public static function toPromise(emitter : Emitter<Bytes>) : Promise<Bytes>
-		return Promise.create(function(resolve, reject) {
-			var buf = new haxe.io.BytesBuffer();
-			emitter.subscribe(
-				function(b) buf.addBytes(b, 0, b.length),
-				function(cancel)
-					if(cancel) reject(new thx.Error("Data stream has been cancelled"))
-					else       resolve(buf.getBytes())
-			);
-		});
+  public static function toPromise(emitter : Emitter<Bytes>) : Promise<Bytes>
+    return Promise.create(function(resolve, reject) {
+      var buf = new haxe.io.BytesBuffer();
+      emitter.subscribe(
+        function(b) buf.addBytes(b, 0, b.length),
+        function(cancel)
+          if(cancel) reject(new thx.Error("Data stream has been cancelled"))
+          else       resolve(buf.getBytes())
+      );
+    });
 }
 
 class EmitterStrings {
