@@ -25,9 +25,7 @@ class PromiseArrays {
           }
           stream.end();
         })
-        .failure(function(err) {
-          throw err;
-        });
+        .throwFailure();
     });
   }
 }

@@ -9,6 +9,7 @@ import thx.promise.Future;
 import thx.promise.Promise;
 import haxe.io.Bytes;
 
+// TODO, all async methods are borken because they don't generate a queue
 class Emitter<T> {
   var init : Stream<T> -> Void;
   public function new(init : Stream<T> -> Void)
@@ -159,7 +160,6 @@ class Emitter<T> {
         case End(false):  stream.end();
       }));
     });
-
 
   // TRANSFORM VALUES
   public function map<TOut>(f : T -> TOut) : Emitter<TOut>
@@ -484,9 +484,7 @@ class Emitters {
     return Promise.create(function(resolve, reject) {
       var arr = [];
       emitter.subscribe(
-        function(v) {
-          arr.push(v);
-        },
+        arr.push,
         function(c) {
           if(c)
             reject(new thx.Error('stream has been canceled'));
