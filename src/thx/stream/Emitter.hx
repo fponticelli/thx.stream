@@ -162,16 +162,43 @@ class Emitter<T> {
     });
 
   // TRANSFORM VALUES
+  // TODO express map and filter as cases of reduce
   public function map<TOut>(f : T -> TOut) : Emitter<TOut>
     return mapFuture(function(v) return Future.value(f(v)));
 
   public function mapFuture<TOut>(f : T -> Future<TOut>) : Emitter<TOut>
-    return new Emitter(function(stream)
-      init(new Stream(function(r) switch r {
-        case Pulse(v):   f(v).then(stream.pulse);
-        case End(true):  stream.cancel();
-        case End(false): stream.end();
-      })));
+    return new Emitter(function(stream) {
+      var queue : Array<StreamValue<TOut>> = [],
+          pos = 0;
+
+      function poll() {
+        while(queue[pos] != null) {
+          var r = queue[pos];
+          queue[pos++] = null;
+          switch r {
+            case Pulse(v):   stream.pulse(v);
+            case End(true):  stream.cancel();
+            case End(false): stream.end();
+          };
+        }
+      }
+
+      function resolve(r : StreamValue<T>)
+        switch r {
+          case Pulse(v):
+            var index = queue.length;
+            queue.push(null);
+            f(v).then(function(o) {
+              queue[index] = Pulse(o);
+              poll();
+            });
+          case End(c):
+            queue.push(End(c));
+            poll();
+        }
+
+      init(new Stream(resolve));
+    });
 
   public function mapPromise<TOut>(f : T -> Promise<TOut>) : Emitter<TOut>
     return mapFuture(function(v) {
@@ -199,11 +226,40 @@ class Emitter<T> {
 
   public function filterFuture(f : T -> Future<Bool>) : Emitter<T>
     return new Emitter(function(stream) {
-      init(new Stream(function(r) switch r {
-        case Pulse(v):   f(v).then(function(c) if(c) stream.pulse(v));
-        case End(true):  stream.cancel();
-        case End(false): stream.end();
-      }));
+      var queue : Array<Option<StreamValue<T>>> = [],
+          pos = 0;
+
+      function poll() {
+        while(queue[pos] != null) {
+          var r = queue[pos];
+          queue[pos++] = null;
+          switch r {
+            case Some(Pulse(v)):   stream.pulse(v);
+            case Some(End(true)):  stream.cancel();
+            case Some(End(false)): stream.end();
+            case None: //do nothing, it has been filtered out
+          };
+        }
+      }
+
+      function resolve(r : StreamValue<T>)
+        switch r {
+          case Pulse(v):
+            var index = queue.length;
+            queue.push(null);
+            f(v).then(function(c) {
+              if(c)
+                queue[index] = Some(r);
+              else
+                queue[index] = None;
+              poll();
+            });
+          case other:
+            queue.push(Some(other));
+            poll();
+        }
+
+      init(new Stream(resolve));
     });
 
   public function filterPromise(f : T -> Promise<Bool>) : Emitter<T>
