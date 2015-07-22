@@ -317,6 +317,26 @@ class TestEmitter extends Test {
       .map(function(t) return t._0 / t._1)
       .sign(assertExpectations([1.0,1,1,1,1,1,1,1,1,1]));
   }
+
+  public function testConcurrencyMap() {
+    var t = [1, 2, 3].toStream()
+      .mapFuture(function(v) {
+        return Future.create(function(resolve) {
+          thx.Timer.delay(function() resolve(v), 25);
+        });
+      })
+      .sign(assertExpectations([1,2,3]));
+  }
+
+  public function testConcurrencyFilter() {
+    var t = [1, 2, 3].toStream()
+      .filterFuture(function(v) {
+        return Future.create(function(resolve) {
+          thx.Timer.delay(function() resolve(v % 2 == 0), 25);
+        });
+      })
+      .sign(assertExpectations([2]));
+  }
 #end
   public function testDiffWithSeed() {
     [1,2,3,6].toStream()
