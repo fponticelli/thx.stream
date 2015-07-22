@@ -173,6 +173,15 @@ class Emitter<T> {
         case End(false): stream.end();
       })));
 
+  public function mapPromise<TOut>(f : T -> Promise<TOut>) : Emitter<TOut>
+    return mapFuture(function(v) {
+      return Future.create(function(resolve) {
+         f(v)
+          .success(resolve)
+          .throwFailure();
+      });
+    });
+
   public function toOption() : Emitter<Option<T>>
     return map(function(v) return null == v ? None : Some(v));
   public function toNil() : Emitter<Nil>
@@ -198,22 +207,12 @@ class Emitter<T> {
     });
 
   public function filterPromise(f : T -> Promise<Bool>) : Emitter<T>
-    return new Emitter(function(stream) {
-      init(new Stream(function(r) switch r {
-        case Pulse(v):
-          f(v)
-            .success(function(c) {
-              if(c && !stream.canceled)
-                stream.pulse(v);
-            })
-            .failure(function(e) {
-              throw e;
-            });
-        case End(true):
-          stream.cancel();
-        case End(false):
-          stream.end();
-      }));
+    return filterFuture(function(v) {
+      return Future.create(function(resolve) {
+         f(v)
+          .success(resolve)
+          .throwFailure();
+      });
     });
 
   public function first()
