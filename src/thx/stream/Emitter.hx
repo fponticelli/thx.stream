@@ -587,6 +587,9 @@ class EmitterStrings {
 
   public static function join(emitter : Emitter<String>, sep : String) : Emitter<String>
     return emitter.reduce("", function(acc, v) return acc + sep + v);
+
+  public static function filterEmpty(emitter : Emitter<String>) : Emitter<String>
+    return emitter.filter(function(v) return !thx.Strings.isEmpty(v));
 }
 
 class EmitterInts {
