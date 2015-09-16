@@ -552,12 +552,17 @@ class Emitters {
 class EmitterBytes {
   public static function toPromise(emitter : Emitter<Bytes>) : Promise<Bytes>
     return Promise.create(function(resolve, reject) {
-      var buf = new haxe.io.BytesBuffer();
+      var buf = Bytes.alloc(0);
       emitter.subscribe(
-        function(b) buf.addBytes(b, 0, b.length),
+        function(b)  {
+          var nbuf = Bytes.alloc(buf.length + b.length);
+          nbuf.blit(0, buf, 0, buf.length);
+          nbuf.blit(buf.length, b, 0, b.length);
+          buf = nbuf;
+        },
         function(cancel)
           if(cancel) reject(new thx.Error("Data stream has been cancelled"))
-          else       resolve(buf.getBytes())
+          else       resolve(buf)
       );
     });
 }
