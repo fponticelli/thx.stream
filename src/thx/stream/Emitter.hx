@@ -753,7 +753,7 @@ class EmitterOptions {
     return emitter
       .filter(function(opt) return opt.toBool())
       // cast is required by C#
-      .map(function(opt) return (opt.toValue() : T));
+      .map(function(opt) return (opt.get() : T));
 
   public static function toBool<T>(emitter : Emitter<Option<T>>) : Emitter<Bool>
     return emitter
@@ -761,7 +761,7 @@ class EmitterOptions {
 
   public static function toValue<T>(emitter : Emitter<Option<T>>) : Emitter<Null<T>>
     return emitter
-      .map(function(opt) return opt.toValue());
+      .map(function(opt) return opt.get());
 }
 
 class EmitterBools {
