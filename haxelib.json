@@ -5,11 +5,12 @@
   "classPath": "src",
   "tags": ["thx", "stream", "async", "cross"],
   "description": "Stream library for Haxe.",
-  "releasenote": "Aded .filterPluck() and reordered code",
-  "version": "0.4.1",
+  "releasenote": "Updated dependencies and general improvments",
+  "version": "0.5.0",
   "contributors": ["fponticelli"],
   "dependencies": {
     "thx.core": "",
     "thx.promise": ""
   }
+}
 }
