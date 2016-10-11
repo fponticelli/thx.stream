@@ -7,13 +7,14 @@ import thx.stream.*;
 class TestAll {
   public static function main() {
     var runner = new Runner();
-    runner.addCase(new TestBus());
+    // runner.addCase(new TestBus());
     runner.addCase(new TestEmitter());
     runner.addCase(new TestStream());
+    runner.addCase(new TestProperty());
 #if (js || swf || java)
-    runner.addCase(new TestTimer());
+    // runner.addCase(new TestTimer());
 #end
-    runner.addCase(new TestValue());
+    // runner.addCase(new TestValue());
     Report.create(runner);
     runner.run();
   }

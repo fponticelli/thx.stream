@@ -1,6 +1,9 @@
 package thx.stream;
 
+import thx.Error;
+
 enum StreamValue<T> {
-  Pulse(value : T);
-  End(cancel : Bool);
+  Value(value : T);
+  Error(err: Error);
+  Done(canceled : Bool);
 }
