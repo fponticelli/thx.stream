@@ -8,10 +8,7 @@ class Property<T> {
   public var value(default, null): T;
 
   var equals: T -> T -> Bool;
-  var emitter: StreamEmitter<T>;
   public function new(initial: T, ?equals: T -> T -> Bool) {
-    this.emitter = Emitter.last();
-    this.stream = emitter.stream;
     this.equals = null == equals ? Functions.equality : equals;
     set(initial);
   }
@@ -20,6 +17,12 @@ class Property<T> {
     if(equals(this.value, value))
       return;
     this.value = value;
-    emitter.next(value);
+    // emitter.next(value);
+  }
+
+  public function stream(): Stream<T> {
+    return Stream.create(function(o) {
+      
+    });
   }
 }
