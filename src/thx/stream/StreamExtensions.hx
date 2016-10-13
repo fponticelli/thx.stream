@@ -10,6 +10,9 @@ class StreamExtensions {
   public static function count<T>(stream: Stream<T>): Stream<Int>
     return TupleStreamExtensions.left(withIndex(stream, 1));
 
+  public static function flatten<T>(stream: Stream<Stream<T>>): Stream<T>
+    return stream.flatMap(function(v) return v);
+
   public static function toOption<T>(stream: Stream<T>): Stream<Option<T>>
     return stream.map(function(v) return null == v ? None : Some(v));
 
@@ -46,12 +49,47 @@ class NilStreamExtensions {
 }
 
 class FloatStreamExtensions {
+  public static function min(stream: Stream<Float>): Stream<Float>
+    return stream.comp(function(a, b) return a < b);
 
+  public static function max(stream: Stream<Float>): Stream<Float>
+    return stream.comp(function(a, b) return a > b);
+
+  public static function sum(stream: Stream<Float>): Stream<Float>
+    return stream.fold(function(a, b) return a + b);
+
+  public static function average(stream: Stream<Float>): Stream<Float>
+    return Stream.create(function(o) {
+      var total = 0.0,
+          count = 0;
+        stream.message(function(msg) switch msg {
+          case Next(value):
+            total += value;
+            count++;
+            o.next(total / count);
+          case Error(err):
+            o.error(err);
+          case Done:
+            o.done();
+        }).run();
+    });
 }
 
 class IntStreamExtensions {
   public static function uniqueInt(stream: Stream<Int>): Stream<Int>
     return stream.unique(Set.createInt());
+
+  public static function min(stream: Stream<Int>): Stream<Int>
+    return stream.comp(function(a, b) return a < b);
+
+  public static function max(stream: Stream<Int>): Stream<Int>
+    return stream.comp(function(a, b) return a > b);
+
+  public static function sum(stream: Stream<Int>): Stream<Int>
+    return stream.fold(function(a, b) return a + b);
+
+  public static function average(stream: Stream<Int>): Stream<Float>
+    return FloatStreamExtensions.average(cast stream); // TODO do I really need to map?
 }
 
 class OptionStreamExtensions {
@@ -75,29 +113,27 @@ class TupleStreamExtensions {
 }
 
 class ArrayStreamExtensions {
-  public static function toStream<T>(a: Array<T>): Stream<T> {
-    return throw new thx.error.AbstractMethod();
-  }
+  public static function toStream<T>(a: Array<T>): Stream<T>
+    return Stream.ofValues(a);
 
-  public static function flatten<T>(stream: Stream<Array<T>>): Stream<T> {
-    return throw new thx.error.AbstractMethod();
-  }
+  public static function flatten<T>(stream: Stream<Array<T>>): Stream<T>
+    return stream.flatMap(function(v) return Stream.ofValues(v));
 }
 
 class PromiseArrayStreamExtensions {
-  public static function toStream<T>(p: Promise<Array<T>>): Stream<T> {
-    return throw new thx.error.AbstractMethod();
-  }
+  public static function toStream<T>(p: Promise<Array<T>>): Stream<T>
+    return ArrayStreamExtensions.flatten(PromiseStreamExtensions.toStream(p));
 }
 
 class PromiseStreamExtensions {
-  public static function toStream<T>(p: Promise<T>): Stream<T> {
-    return throw new thx.error.AbstractMethod();
-  }
+  public static function toStream<T>(pr: Promise<T>): Stream<T>
+    return Stream.create(function(o) {
+      pr.success(function(v) { o.next(v); o.done(); })
+        .failure(o.error);
+    });
 
-  public static function flatten<T>(stream: Stream<Promise<T>>): Stream<T> {
-    return throw new thx.error.AbstractMethod();
-  }
+  public static function flatten<T>(stream: Stream<Promise<T>>): Stream<T>
+    return stream.flatMap(function(p) return PromiseStreamExtensions.toStream(p));
 /*
 
   public static function filterFuture(f : T -> Future<Bool>) : Emitter<T>

@@ -42,4 +42,16 @@ class TestStreamSelection {
       .unique(Set.createInt())
       .assertValues([1,2,3,4]);
   }
+
+  public function testMin() {
+    Stream.ofValues([5,7,3,4,1])
+      .min()
+      .assertValues([5,3,1]);
+  }
+
+  public function testMax() {
+    Stream.ofValues([5,7,3,4,1])
+      .max()
+      .assertValues([5,7]);
+  }
 }

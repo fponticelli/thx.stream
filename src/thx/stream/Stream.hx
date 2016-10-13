@@ -18,9 +18,9 @@ class Stream<T> {
       o.done();
     });
   public static function empty<T>(): Stream<T>
-    return create(function(o) {
-      o.done();
-    });
+    return create(function(o) o.done());
+  // TODO fail for Error(String)
+  // TODO error for Error(String) (collides with error the handler)
   public static function ofValues<T>(values: ReadonlyArray<T>): Stream<T>
     return create(function(o) {
       values.each(o.next);
@@ -61,8 +61,11 @@ class Stream<T> {
     return repeatValue(ms, Unit.unit);
 
   public static function repeatValue<T>(ms: Int, value: T): Stream<T>
+    return poll(ms, function() return value);
+
+  public static function poll<T>(ms: Int, f: Void -> T): Stream<T>
     return Stream.cancellable(function(o, addCancel) {
-      addCancel(Timer.repeat(o.next.bind(value), ms));
+      addCancel(Timer.repeat(function() o.next(f()), ms));
     });
 
   public static function delay(ms: Int): Stream<Unit>
@@ -217,22 +220,27 @@ class Stream<T> {
       };
     }()));
 
+  public function comp(compare: T -> T -> Bool): Stream<T>
+    return Stream.create(function(o) {
+      var curmin = None;
+      message(function(msg) switch [msg, curmin] {
+        case [Next(value), None]:
+          curmin = Some(value);
+          o.next(value);
+        case [Next(value), Some(min)] if(compare(value, min)):
+          curmin = Some(value);
+          o.next(value);
+        case [Next(_), _]:
+        case [Error(err), _]:
+          o.error(err);
+        case [Done, _]:
+          o.done();
+      }).run();
+    });
+
   public function distinct(?equality: T -> T -> Bool): Stream<T> {
     if(null == equality) equality = Functions.equality;
-    var first = true;
-    var last = null;
-    return filter(function(v) {
-      if(first) {
-        last = v;
-        first = false;
-        return true;
-      } else if(equality(v, last)) {
-        return false;
-      } else {
-        last = v;
-        return true;
-      }
-    });
+    return comp(function(a, b) return !equality(a, b));
   }
 
   public function unique(set: thx.Set<T>): Stream<T> {
@@ -308,10 +316,21 @@ class Stream<T> {
     return map(function(v) return acc = handler(acc, v));
 
   public function fold(handler: T -> T -> T): Stream<T>
-    return flatMap(function(a) {
-      return flatMap(function(b) {
-        return Stream.ofValue(a = handler(a, b));
-      });
+    return Stream.create(function(o) {
+      var acc = None;
+      message(function(msg) switch [msg, acc] {
+        case [Next(value), None]:
+          acc = Some(value);
+          o.next(value);
+        case [Next(b), Some(a)]:
+          var x = handler(a, b);
+          acc = Some(x);
+          o.next(x);
+        case [Error(err), _]:
+          o.error(err);
+        case [Done, _]:
+          o.done();
+      }).run();
     });
 
   public function collect(): Stream<Array<T>>
