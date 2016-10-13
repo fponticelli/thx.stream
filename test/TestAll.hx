@@ -7,12 +7,16 @@ import thx.stream.*;
 class TestAll {
   public static function main() {
     var runner = new Runner();
-    runner.addCase(new TestStream());
-    runner.addCase(new TestStreamControlFlow());
-    // runner.addCase(new TestProperty());
-#if (js || swf || java)
-    // runner.addCase(new TestTimer());
+#if (js || swf)
+    runner.addCase(new TestStreamAsync());
 #end
+    runner.addCase(new TestStreamCombination());
+    runner.addCase(new TestStreamControlFlow());
+    runner.addCase(new TestStreamCreate());
+    runner.addCase(new TestStreamSelection());
+    runner.addCase(new TestStreamTransform());
+    // runner.addCase(new TestProperty());
+    // runner.addCase(new TestTimer());
     Report.create(runner);
     runner.run();
   }

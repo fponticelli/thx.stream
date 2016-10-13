@@ -2,8 +2,13 @@ package thx.stream;
 
 import thx.Error;
 import thx.stream.Process;
+import haxe.ds.Option;
 using thx.Functions;
 using thx.Arrays;
+using thx.Unit;
+#if (js || flash)
+import thx.Timer;
+#end
 
 class Stream<T> {
   // constructors
@@ -50,6 +55,19 @@ class Stream<T> {
       return cancel;
     });
 
+  // async
+#if (js || flash)
+  public static function repeat(ms: Int): Stream<Unit>
+    return Stream.cancellable(function(o, addCancel) {
+      addCancel(Timer.repeat(o.next.bind(Unit.unit), ms));
+    });
+
+  public static function frame(): Stream<Float>
+    return Stream.cancellable(function(o, addCancel) {
+      addCancel(Timer.frame(o.next));
+    });
+#end
+
   var init: (Message<T> -> Void) -> (Void -> Void);
   public function new(init: (Message<T> -> Void) -> (Void -> Void))
     this.init = function(handler) {
@@ -95,6 +113,53 @@ class Stream<T> {
       return v;
     });
 
+  // selection
+  public function filter(predicate: T -> Bool)
+    return Stream.create(function(o) {
+      message(function(msg) switch msg {
+        case Next(v) if(predicate(v)): o.next(v);
+        case Next(_):
+        case Error(err): o.error(err);
+        case Done: o.done();
+      }).run();
+    });
+
+  public function first()
+    return take(1);
+
+  public function take(qt: Int) {
+    if(qt < 0)
+      qt = 0;
+    return Stream.create(function(o) {
+      var counter = 0;
+      message(function(msg) switch msg {
+          case Next(v):
+            if(counter++ == qt)
+              o.done();
+            else
+              o.next(v);
+          case Error(err): o.error(err);
+          case Done: o.done();
+        }).run();
+      });
+  }
+
+  public function last()
+    return Stream.create(function(o) {
+      var last = None;
+      message(function(msg) switch [msg, last] {
+        case [Next(v), _]:
+          last = Some(v);
+        case [Error(err), _]:
+          o.error(err);
+        case [Done, None]:
+          o.done();
+        case [Done, Some(v)]:
+          o.next(v);
+          o.done();
+      }).run();
+    });
+
   // transforms
   public function flatMap<B>(handler: T -> Stream<B>): Stream<B>
     return Stream.create(function(o) {
@@ -124,4 +189,23 @@ class Stream<T> {
         return Stream.ofValue(a = handler(a, b));
       });
     });
+
+  public function collect(): Stream<Array<T>>
+    return reduce(function(acc: Array<T>, v: T) return acc.concat([v]), []);
+
+  public function collectAll(): Stream<Array<T>>
+    return collect().last();
+
+  // combine streams
+  public function concat(other: Stream<T>): Stream<T>
+    return Stream.create(function(o) {
+      message(function(msg) switch msg {
+        case Next(v): o.next(v);
+        case Error(err): o.error(err);
+        case Done: other.message(o.message).run();
+      }).run();
+    });
+
+  public function appendTo(other: Stream<T>): Stream<T>
+    return other.concat(this);
 }

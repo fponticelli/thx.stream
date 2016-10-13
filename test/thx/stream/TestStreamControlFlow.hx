@@ -1,9 +1,6 @@
 package thx.stream;
 
 import utest.Assert;
-using thx.Iterators;
-using thx.Functions;
-using thx.Error;
 using thx.stream.TestStream;
 
 class TestStreamControlFlow {
