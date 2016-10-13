@@ -123,15 +123,16 @@ class Stream<T> {
     return new Process(Process.alwaysAsMessageHandler(handler), init);
 
   // debug
-  public function log(?prefix: String, ?pos: haxe.PosInfos): Stream<T>
+  public function log(?prefix: String, ?pos: haxe.PosInfos): Stream<T> {
+    if(null == prefix)
+      prefix = "";
+    else
+      prefix += ": ";
     return map(function(v: T) {
-      if(null == prefix)
-        prefix = "";
-      else
-        prefix += ": ";
       haxe.Log.trace('${prefix}${v}', pos);
       return v;
     });
+  }
 
   public function logMessage(?prefix: String, ?pos: haxe.PosInfos): Stream<T>
     return Stream.create(function(o) {
@@ -261,6 +262,22 @@ class Stream<T> {
       }).run();
     });
 
+  public function slidingWindow(minSize: Int, maxSize: Int): Stream<ReadonlyArray<T>>
+    return Stream.create(function(o) {
+      var acc = [];
+      message(function(msg) switch msg {
+        case Next(v):
+          acc.push(v);
+          if(acc.length > maxSize) acc = acc.slice(1, maxSize + 1);
+          if(acc.length >= minSize)
+            o.next(acc);
+        case Error(err):
+          o.error(err);
+        case Done:
+          o.done();
+      }).run();
+    });
+
   // transforms
   public function flatMap<B>(handler: T -> Stream<B>): Stream<B>
     return Stream.create(function(o) {
@@ -316,8 +333,43 @@ class Stream<T> {
       }).run();
     });
 
+  public function merge(other: Stream<T>): Stream<T>
+    return Stream.create(function(o) {
+      message(o.message).run();
+      other.message(o.message).run();
+    });
+
   public function appendTo(other: Stream<T>): Stream<T>
     return other.concat(this);
+
+  public function pair<B>(other: Stream<B>): Stream<Tuple<T, B>>
+    return Stream.create(function(o) {
+      var left  = None,
+          right = None;
+      message(function(msg) switch [msg, right] {
+        case [Next(a), Some(b)]:
+          left = Some(a);
+          o.next(Tuple.of(a, b));
+        case [Next(a), _]:
+          left = Some(a);
+        case [Error(err), _]:
+          o.error(err);
+        case [Done, _]:
+          o.done();
+      }).run();
+
+      other.message(function(msg) switch [msg, left] {
+        case [Next(b), Some(a)]:
+          right = Some(b);
+          o.next(Tuple.of(a, b));
+        case [Next(b), _]:
+          right = Some(b);
+        case [Error(err), _]:
+          o.error(err);
+        case [Done, _]:
+          o.done();
+      }).run();
+    });
 
   // async
 #if (js || flash)

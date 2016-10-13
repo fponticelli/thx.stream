@@ -7,19 +7,22 @@ using thx.Unit;
 import haxe.ds.Option;
 
 class StreamExtensions {
-  public function toOption<T>(stream: Stream<T>): Stream<Option<T>>
+  public static function count<T>(stream: Stream<T>): Stream<Int>
+    return TupleStreamExtensions.left(withIndex(stream, 1));
+
+  public static function toOption<T>(stream: Stream<T>): Stream<Option<T>>
     return stream.map(function(v) return null == v ? None : Some(v));
 
-  public function toNil<T>(stream: Stream<T>): Stream<Nil>
+  public static function toNil<T>(stream: Stream<T>): Stream<Nil>
     return stream.map(function(_) return Nil.nil);
 
-  public function toTrue<T>(stream: Stream<T>): Stream<Bool>
+  public static function toTrue<T>(stream: Stream<T>): Stream<Bool>
     return stream.map(function(_) return true);
 
-  public function toFalse<T>(stream: Stream<T>): Stream<Bool>
+  public static function toFalse<T>(stream: Stream<T>): Stream<Bool>
     return stream.map(function(_) return false);
 
-  public function toValue<A, B>(stream: Stream<A>, value : B): Stream<B>
+  public static function toValue<A, B>(stream: Stream<A>, value : B): Stream<B>
     return stream.map(function(_) return value);
 
   public static function withIndex<T>(stream: Stream<T>, ?start: Int = 0): Stream<Tuple<Int, T>>
@@ -28,7 +31,7 @@ class StreamExtensions {
   public static function nil<T>(stream: Stream<T>): Stream<Nil>
     return stream.map(function(_) return Nil.nil);
 
-  public function notNull<T>(stream: Stream<Null<T>>): Stream<T>
+  public static function notNull<T>(stream: Stream<Null<T>>): Stream<T>
     return stream.filter(function(v) return v != null);
 }
 
@@ -64,7 +67,7 @@ class OptionStreamExtensions {
       });
 }
 
-class Tuple2Extensions {
+class TupleStreamExtensions {
   public static function left<A, B>(stream: Stream<Tuple<A, B>>): Stream<A>
     return stream.map(function(t) return t._0);
   public static function right<A, B>(stream: Stream<Tuple<A, B>>): Stream<B>
@@ -97,7 +100,7 @@ class PromiseStreamExtensions {
   }
 /*
 
-  public function filterFuture(f : T -> Future<Bool>) : Emitter<T>
+  public static function filterFuture(f : T -> Future<Bool>) : Emitter<T>
     return new Emitter(function(stream) {
       var queue : Array<Option<StreamValue<T>>> = [],
           pos = 0;
@@ -135,7 +138,7 @@ class PromiseStreamExtensions {
       init(new Stream(resolve));
     });
 
-  public function filterPromise(f : T -> Promise<Bool>) : Emitter<T>
+  public static function filterPromise(f : T -> Promise<Bool>) : Emitter<T>
     return filterFuture(function(v) {
       return Future.create(function(resolve) {
          f(v)
