@@ -4,28 +4,71 @@ using thx.promise.Promise;
 using thx.Nil;
 using thx.Tuple;
 using thx.Unit;
+import haxe.ds.Option;
 
 class StreamExtensions {
-  public static function max<T>(stream: Stream<T>, maxf: T -> T -> T): Stream<T> {
-    return throw new thx.error.AbstractMethod();
-  }
+  public function toOption<T>(stream: Stream<T>): Stream<Option<T>>
+    return stream.map(function(v) return null == v ? None : Some(v));
 
-  public static function min<T>(stream: Stream<T>, minf: T -> T -> T): Stream<T> {
-    return throw new thx.error.AbstractMethod();
-  }
+  public function toNil<T>(stream: Stream<T>): Stream<Nil>
+    return stream.map(function(_) return Nil.nil);
+
+  public function toTrue<T>(stream: Stream<T>): Stream<Bool>
+    return stream.map(function(_) return true);
+
+  public function toFalse<T>(stream: Stream<T>): Stream<Bool>
+    return stream.map(function(_) return false);
+
+  public function toValue<A, B>(stream: Stream<A>, value : B): Stream<B>
+    return stream.map(function(_) return value);
 
   public static function withIndex<T>(stream: Stream<T>, ?start: Int = 0): Stream<Tuple<Int, T>>
     return stream.map(function(v) return Tuple.of(start++, v));
+
+  public static function nil<T>(stream: Stream<T>): Stream<Nil>
+    return stream.map(function(_) return Nil.nil);
+
+  public function notNull<T>(stream: Stream<Null<T>>): Stream<T>
+    return stream.filter(function(v) return v != null);
 }
 
-class StreamUnitExtensions {
+class UnitStreamExtensions {
   public static function withIndex(stream: Stream<Unit>, ?start: Int = 0): Stream<Int>
     return stream.map(function(_) return start++);
 }
 
-class StreamNilExtensions {
+class NilStreamExtensions {
   public static function withIndex(stream: Stream<Nil>, ?start: Int = 0): Stream<Int>
     return stream.map(function(_) return start++);
+}
+
+class FloatStreamExtensions {
+
+}
+
+class IntStreamExtensions {
+  public static function uniqueInt(stream: Stream<Int>): Stream<Int>
+    return stream.unique(Set.createInt());
+}
+
+class OptionStreamExtensions {
+  public static function filterOption<T>(stream: Stream<Option<T>>): Stream<T>
+    return stream
+      .filter(function(o) return switch o {
+        case Some(_): true;
+        case None: false;
+      })
+      .map(function(o) return switch o {
+        case Some(v): v;
+        case None: throw new thx.Error('should never happen');
+      });
+}
+
+class Tuple2Extensions {
+  public static function left<A, B>(stream: Stream<Tuple<A, B>>): Stream<A>
+    return stream.map(function(t) return t._0);
+  public static function right<A, B>(stream: Stream<Tuple<A, B>>): Stream<B>
+    return stream.map(function(t) return t._1);
 }
 
 class ArrayStreamExtensions {

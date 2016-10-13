@@ -58,8 +58,24 @@ class Stream<T> {
   // async
 #if (js || flash)
   public static function repeat(ms: Int): Stream<Unit>
+    return repeatValue(ms, Unit.unit);
+
+  public static function repeatValue<T>(ms: Int, value: T): Stream<T>
     return Stream.cancellable(function(o, addCancel) {
-      addCancel(Timer.repeat(o.next.bind(Unit.unit), ms));
+      addCancel(Timer.repeat(o.next.bind(value), ms));
+    });
+
+  public static function delay(ms: Int): Stream<Unit>
+    return delayValue(ms, Unit.unit);
+
+  public static function delayValue<T>(ms: Int, value: T): Stream<T>
+    return Stream.cancellable(function(o, addCancel) {
+      addCancel(
+        Timer.delay(function() {
+          o.next(value);
+          o.done();
+        }, ms)
+      );
     });
 
   public static function frame(): Stream<Float>
@@ -107,10 +123,26 @@ class Stream<T> {
     return new Process(Process.alwaysAsMessageHandler(handler), init);
 
   // debug
-  public function log(?pos: haxe.PosInfos): Stream<T>
+  public function log(?prefix: String, ?pos: haxe.PosInfos): Stream<T>
     return map(function(v: T) {
-      haxe.Log.trace(v, pos);
+      if(null == prefix)
+        prefix = "";
+      else
+        prefix += ": ";
+      haxe.Log.trace('${prefix}${v}', pos);
       return v;
+    });
+
+  public function logMessage(?prefix: String, ?pos: haxe.PosInfos): Stream<T>
+    return Stream.create(function(o) {
+      if(null == prefix)
+        prefix = "";
+      else
+        prefix += ": ";
+      message(function(msg: Message<T>) {
+        haxe.Log.trace('${prefix}${Std.string(msg)}', pos);
+        o.message(msg);
+      }).run();
     });
 
   // selection
@@ -127,21 +159,90 @@ class Stream<T> {
   public function first()
     return take(1);
 
+  public function skip(qt: Int) {
+    if(qt < 0)
+      qt = 0;
+    return Stream.create(function(o) {
+      var counter = 0;
+      message(function(msg) switch msg {
+        case Next(v) if(counter++ >= qt):
+          o.next(v);
+        case Next(_):
+        case Error(err):
+          o.error(err);
+        case Done:
+          o.done();
+      }).run();
+    });
+  }
+
+  public function skipUntil(predicate : T -> Bool): Stream<T>
+    return filter((function() {
+      var flag = false;
+      return function(v) {
+        if(flag)
+          return true;
+        if(predicate(v))
+          return false;
+        return flag = true;
+      };
+    }()));
+
   public function take(qt: Int) {
     if(qt < 0)
       qt = 0;
     return Stream.create(function(o) {
       var counter = 0;
       message(function(msg) switch msg {
+          case Next(_) if(counter++ == qt):
+            o.done();
           case Next(v):
-            if(counter++ == qt)
-              o.done();
-            else
-              o.next(v);
-          case Error(err): o.error(err);
-          case Done: o.done();
+            o.next(v);
+          case Error(err):
+            o.error(err);
+          case Done:
+            o.done();
         }).run();
       });
+  }
+
+  public function takeUntil(predicate : T -> Bool): Stream<T>
+    return filter((function() {
+      var flag = true;
+      return function(v) {
+        if(flag && predicate(v))
+          return true;
+        return flag = false;
+      };
+    }()));
+
+  public function distinct(?equality: T -> T -> Bool): Stream<T> {
+    if(null == equality) equality = Functions.equality;
+    var first = true;
+    var last = null;
+    return filter(function(v) {
+      if(first) {
+        last = v;
+        first = false;
+        return true;
+      } else if(equality(v, last)) {
+        return false;
+      } else {
+        last = v;
+        return true;
+      }
+    });
+  }
+
+  public function unique(set: thx.Set<T>): Stream<T> {
+    return filter(function(v) {
+      return if(set.exists(v)) {
+        false;
+      } else {
+        set.add(v);
+        true;
+      }
+    });
   }
 
   public function last()
@@ -180,6 +281,12 @@ class Stream<T> {
   public function map<B>(handler: T -> B): Stream<B>
     return flatMap(function(v) return Stream.ofValue(handler(v)));
 
+  public function effect(handler: T -> Void): Stream<T>
+    return map(function(v) {
+      handler(v);
+      return v;
+    });
+
   public function reduce<Acc>(handler: Acc -> T -> Acc, acc: Acc): Stream<Acc>
     return map(function(v) return acc = handler(acc, v));
 
@@ -200,12 +307,21 @@ class Stream<T> {
   public function concat(other: Stream<T>): Stream<T>
     return Stream.create(function(o) {
       message(function(msg) switch msg {
-        case Next(v): o.next(v);
-        case Error(err): o.error(err);
-        case Done: other.message(o.message).run();
+        case Next(v):
+          o.next(v);
+        case Error(err):
+          o.error(err);
+        case Done:
+          other.message(o.message).run();
       }).run();
     });
 
   public function appendTo(other: Stream<T>): Stream<T>
     return other.concat(this);
+
+  // async
+#if (js || flash)
+  public function delayed(ms: Int): Stream<T>
+    return delay(ms).flatMap(function(_) return this);
+#end
 }

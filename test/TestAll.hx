@@ -15,8 +15,8 @@ class TestAll {
     runner.addCase(new TestStreamCreate());
     runner.addCase(new TestStreamSelection());
     runner.addCase(new TestStreamTransform());
+
     // runner.addCase(new TestProperty());
-    // runner.addCase(new TestTimer());
     Report.create(runner);
     runner.run();
   }

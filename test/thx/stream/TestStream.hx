@@ -7,6 +7,7 @@ class TestStream {
   public static function assertSame<T>(stream: Stream<T>, expected: Array<Message<T>>, ?pos: haxe.PosInfos) {
     var collect = [];
     stream
+      // .logMessage("assert")
       .message(collect.push)
       .always(function() Assert.same(expected, collect, 'expected ${expected} but got ${collect}', pos))
       .always(Assert.createAsync())

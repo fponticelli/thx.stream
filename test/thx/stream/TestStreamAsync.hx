@@ -10,6 +10,25 @@ using thx.stream.TestStream;
 class TestStreamAsync {
   public function new() {}
 
+  public function testDelay() {
+    var before = true;
+    Stream
+      .delayValue(5, 1)
+      .effect(function(_) Assert.isFalse(before))
+      .assertValues([1]);
+    before = false;
+  }
+
+  public function testDelayed() {
+    var before = true;
+    Stream
+      .ofValue(1)
+      .delayed(5)
+      .effect(function(_) Assert.isFalse(before))
+      .assertValues([1]);
+    before = false;
+  }
+
   public function testRepeat() {
     Stream
       .repeat(1)
@@ -21,6 +40,7 @@ class TestStreamAsync {
   public function testFrame() {
     Stream
       .frame()
+      .skip(1) // first frame can happen almost instantaneously
       .take(5)
       .withIndex()
       .assertCheckValues(function(values: Array<Tuple<Int, Float>>) {
