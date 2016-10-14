@@ -54,4 +54,16 @@ class TestStreamSelection {
       .max()
       .assertValues([5,7]);
   }
+
+  public function testWindow() {
+    Stream.ofValues([1,2,3,4,5,6,7])
+      .window(2)
+      .assertValues([[1,2],[3,4],[5,6]]);
+  }
+
+  public function testSlidingWindow() {
+    Stream.ofValues([1,2,3,4,5])
+      .slidingWindow(2,3)
+      .assertValues([[1,2],[1,2,3],[2,3,4],[3,4,5]]);
+  }
 }

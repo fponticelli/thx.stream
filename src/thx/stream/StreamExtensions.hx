@@ -75,6 +75,14 @@ class FloatStreamExtensions {
     });
 }
 
+class StringStreamExtensions {
+  public static function uniqueString(stream: Stream<String>): Stream<String>
+    return stream.unique(Set.createString());
+
+  public static function notEmpty(stream: Stream<String>): Stream<String>
+    return stream.filter(function(v) return v != null && v != "");
+}
+
 class IntStreamExtensions {
   public static function uniqueInt(stream: Stream<Int>): Stream<Int>
     return stream.unique(Set.createInt());
@@ -183,23 +191,6 @@ class PromiseStreamExtensions {
       });
     });
 
-  public static function skipNull<T>(emitter : Emitter<Null<T>>) : Emitter<T>
-    // cast is required by C#
-    return cast emitter
-      .filter(function(value) return null != value);
-
-  public static function unique<T>(emitter : Emitter<T>) : Emitter<T>
-    return emitter.filter((function() {
-      var buf = [];
-      return function(v) {
-        return if(buf.indexOf(v) >= 0)
-          false;
-        else {
-          buf.push(v);
-          true;
-        }
-      };
-    })());
 */
 }
 
@@ -214,35 +205,11 @@ class EmitterStrings {
   public static function truthy(emitter : Emitter<String>) : Emitter<String>
     return emitter.filter(function(s) return s != null && s != "");
 
-  public static function unique(emitter : Emitter<String>) : Emitter<String>
-    return emitter.filter((function() {
-      var buf = new Map<String, Bool>();
-      return function(v) {
-        return if(buf.exists(v))
-          false;
-        else {
-          buf.set(v, true);
-          true;
-        }
-      };
-    })());
-
   public static function join(emitter : Emitter<String>, sep : String) : Emitter<String>
     return emitter.reduce("", function(acc, v) return acc + sep + v);
-
-  public static function filterEmpty(emitter : Emitter<String>) : Emitter<String>
-    return emitter.filter(function(v) return !thx.Strings.isEmpty(v));
 }
 
 class EmitterInts {
-  public static function average(emitter : Emitter<Int>) : Emitter<Float>
-    return emitter
-      .map((function(){
-        var sum = 0.0,
-            count = 0;
-        return function(v) return (sum += v) / (++count);
-      })());
-
   public static function greaterThan(emitter : Emitter<Int>, x : Int) : Emitter<Int>
     return emitter.filter(function(v) return v > x);
 
@@ -260,39 +227,6 @@ class EmitterInts {
 
   public static function lessThanOrEqualTo(emitter : Emitter<Int>, x : Int) : Emitter<Int>
     return emitter.filter(function(v) return v <= x);
-
-  public static function max(emitter : Emitter<Int>) : Emitter<Int>
-    return emitter
-      .filter((function() {
-        var max : Null<Int> = null;
-        return function(v)
-          return if(null == max || v > max) {
-            max = v;
-            true;
-          } else {
-            false;
-          }
-        })());
-
-  public static function min(emitter : Emitter<Int>) : Emitter<Int>
-    return emitter
-      .filter((function() {
-        var min : Null<Int> = null;
-        return function(v)
-          return if(null == min || v < min) {
-            min = v;
-            true;
-          } else {
-            false;
-          }
-        })());
-
-  public static function sum(emitter : Emitter<Int>) : Emitter<Int>
-    return emitter
-      .map((function(){
-        var value = 0;
-        return function(v) return value += v;
-      })());
 
   public static function toBool(emitter : Emitter<Int>) : Emitter<Bool>
     return emitter
@@ -313,14 +247,6 @@ class EmitterInts {
 }
 
 class EmitterFloats {
-  public static function average(emitter : Emitter<Float>) : Emitter<Float>
-    return emitter
-      .map((function(){
-        var sum = 0.0,
-            count = 0;
-        return function(v) return (sum += v) / (++count);
-      })());
-
   public static function greaterThan(emitter : Emitter<Float>, x : Float) : Emitter<Float>
     return emitter.filter(function(v) return v > x);
 
@@ -338,39 +264,6 @@ class EmitterFloats {
 
   public static function lessThanOrEqualTo(emitter : Emitter<Float>, x : Float) : Emitter<Float>
     return emitter.filter(function(v) return v <= x);
-
-  public static function max(emitter : Emitter<Float>) : Emitter<Float>
-    return emitter
-      .filter((function() {
-        var max : Float = Math.NEGATIVE_INFINITY;
-        return function(v)
-          return if(v > max) {
-            max = v;
-            true;
-          } else {
-            false;
-          }
-        })());
-
-  public static function min(emitter : Emitter<Float>) : Emitter<Float>
-    return emitter
-      .filter((function() {
-        var min : Float = Math.POSITIVE_INFINITY;
-        return function(v)
-          return if(v < min) {
-            min = v;
-            true;
-          } else {
-            false;
-          }
-        })());
-
-  public static function sum(emitter : Emitter<Float>) : Emitter<Float>
-    return emitter
-      .map((function(){
-        var sum = 0.0;
-        return function(v) return sum += v;
-      })());
 }
 
 class EmitterOptions {

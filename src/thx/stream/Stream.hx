@@ -276,9 +276,27 @@ class Stream<T> {
       message(function(msg) switch msg {
         case Next(v):
           acc.push(v);
-          if(acc.length > maxSize) acc = acc.slice(1, maxSize + 1);
+          if(acc.length == maxSize + 1)
+            acc.shift();
           if(acc.length >= minSize)
+            o.next(acc.copy());
+        case Error(err):
+          o.error(err);
+        case Done:
+          o.done();
+      }).run();
+    });
+
+  public function window(size: Int): Stream<ReadonlyArray<T>>
+    return Stream.create(function(o) {
+      var acc = [];
+      message(function(msg) switch msg {
+        case Next(v):
+          acc.push(v);
+          if(acc.length == size) {
             o.next(acc);
+            acc = [];
+          }
         case Error(err):
           o.error(err);
         case Done:
@@ -387,6 +405,100 @@ class Stream<T> {
           o.error(err);
         case [Done, _]:
           o.done();
+      }).run();
+    });
+
+  public function alternate(other: Stream<T>): Stream<T>
+    return Stream.create(function(o){
+      var left  = [],
+          ldone = false,
+          right = [],
+          rdone = false,
+          pickLeft = true;
+      function emit() {
+        var emitted = false;
+        do {
+          emitted = false;
+          if(pickLeft && left.length > 0) {
+            pickLeft = false;
+            emitted = true;
+            o.next(left.shift());
+          }
+          if(!pickLeft && right.length > 0 && !pickLeft) {
+            pickLeft = true;
+            emitted = true;
+            o.next(right.shift());
+          }
+        } while(emitted);
+      }
+      message(function(msg) switch msg {
+        case Next(l):
+          left.push(l);
+          emit();
+          if(rdone && right.length == 0)
+            o.done();
+        case Error(err):
+          o.error(err);
+        case Done:
+          if(rdone)
+            o.done();
+          else
+            ldone = true;
+      }).run();
+      other.message(function(msg) switch msg {
+        case Next(r):
+          right.push(r);
+          emit();
+          if(ldone && left.length == 0 && pickLeft)
+            o.done();
+        case Error(err):
+          o.error(err);
+        case Done:
+          if(ldone)
+            o.done();
+          else
+            rdone = true;
+      }).run();
+    });
+
+  public function zip<B>(other: Stream<B>): Stream<Tuple<T, B>>
+    return Stream.create(function(o){
+      var left  = [],
+          ldone = false,
+          right = [],
+          rdone = false;
+      function emit() {
+        while(left.length > 0 && right.length > 0) {
+          o.next(Tuple.of(left.shift(), right.shift()));
+        }
+      }
+      message(function(msg) switch msg {
+        case Next(l):
+          left.push(l);
+          emit();
+          if(rdone && right.length == 0)
+            o.done();
+        case Error(err):
+          o.error(err);
+        case Done:
+          if(rdone)
+            o.done();
+          else
+            ldone = true;
+      }).run();
+      other.message(function(msg) switch msg {
+        case Next(r):
+          right.push(r);
+          emit();
+          if(ldone && left.length == 0)
+            o.done();
+        case Error(err):
+          o.error(err);
+        case Done:
+          if(ldone)
+            o.done();
+          else
+            rdone = true;
       }).run();
     });
 
