@@ -19,6 +19,12 @@ class TestStreamSelection {
       .assertValues([3,4]);
   }
 
+  public function testSkipFromEnd() {
+    Stream.ofValues([1,2,3,4])
+      .skipFromEnd(2)
+      .assertValues([1,2]);
+  }
+
   public function testFirst() {
     Stream.ofValues([1,2,3,4])
       .first()
@@ -53,6 +59,18 @@ class TestStreamSelection {
     Stream.ofValues([5,7,3,4,1])
       .max()
       .assertValues([5,7]);
+  }
+
+  public function testSampleBy() {
+    Stream.ofValues([1,2])
+      .sampledBy(Stream.ofValues(["a"]))
+      .assertValues([Tuple.of(2, "a")]);
+  }
+
+  public function testTakeAt() {
+    Stream.ofValues([1,2,3,4,5])
+      .takeAt(2)
+      .assertValues([3]);
   }
 
   public function testWindow() {

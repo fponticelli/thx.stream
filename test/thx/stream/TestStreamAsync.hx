@@ -50,4 +50,25 @@ class TestStreamAsync {
         return true;
       });
   }
+
+  public function testSpaced() {
+    var before = true;
+    Stream
+      .ofValues([1,2,3,4,5])
+      .spaced(10)
+      .skipFirst()
+      .effect(function(_) Assert.isFalse(before))
+      .assertValues([2,3,4,5]);
+    before = false;
+  }
+
+  public function testDebounce() {
+    var before = true;
+    Stream
+      .ofValues([1,2,3,4,5])
+      .debounce(10)
+      .effect(function(_) Assert.isFalse(before))
+      .assertValues([5]);
+    before = false;
+  }
 }

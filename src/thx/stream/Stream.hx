@@ -6,6 +6,8 @@ import haxe.ds.Option;
 using thx.Functions;
 using thx.Arrays;
 using thx.Unit;
+using thx.promise.Future;
+using thx.promise.Promise;
 #if (js || flash)
 import thx.Timer;
 #end
@@ -151,17 +153,82 @@ class Stream<T> {
 
   // selection
   public function filter(predicate: T -> Bool)
+    return filterFuture(function(v) return Future.value(predicate(v)));
+
+  public function filterFuture(predicate: T -> Future<Bool>)
+    return filterPromise(function(v) return Promise.create(function(resolve, _) predicate(v).then(resolve)));
+
+  // TODO should this ensure that sequence is not affected?
+  public function filterPromise(predicate: T -> Promise<Bool>)
     return Stream.create(function(o) {
       message(function(msg) switch msg {
-        case Next(v) if(predicate(v)): o.next(v);
-        case Next(_):
-        case Error(err): o.error(err);
-        case Done: o.done();
+        case Next(v):
+          predicate(v)
+            .success(function(b) if(b) o.next(v))
+            .failure(o.error);
+        case Error(err):
+          o.error(err);
+        case Done:
+          o.done();
+      }).run();
+    });
+
+  public function filterMap<B>(predicate: T -> Option<B>): Stream<B>
+    return filterMapFuture(function(v) return Future.value(predicate(v)));
+
+  public function filterMapFuture<B>(predicate: T -> Future<Option<B>>): Stream<B>
+    return filterMapPromise(function(v) return Promise.create(function(resolve, _) predicate(v).then(resolve)));
+
+  // TODO should this ensure that sequence is not affected?
+  public function filterMapPromise<B>(predicate: T -> Promise<Option<B>>): Stream<B>
+    return Stream.create(function(o) {
+      message(function(msg) switch msg {
+        case Next(v):
+          predicate(v)
+            .success(function(b) switch b {
+              case Some(v): o.next(v);
+              case _:
+            })
+            .failure(o.error);
+        case Error(err):
+          o.error(err);
+        case Done:
+          o.done();
       }).run();
     });
 
   public function first()
     return take(1);
+
+  public function sampledBy<B>(other: Stream<B>): Stream<Tuple<T, B>>
+    return Stream.create(function(o) {
+      var left = None,
+          leftDone = false;
+      message(function(msg) switch msg {
+        case Next(l):
+          left = Some(l);
+        case Error(err):
+          o.error(err);
+        case Done:
+          leftDone = true;
+      }).run();
+      other.message(function(msg) switch [msg, left] {
+        case [Next(r), Some(l)]:
+          o.next(Tuple.of(l, r));
+          left = None;
+        case [Next(_), None] if(leftDone):
+          o.done();
+        case [Next(_), _]:
+
+        case [Error(err), _]:
+          o.error(err);
+        case [Done, _]:
+          o.done();
+      }).run();
+    });
+
+  public function samplerOf<B>(other: Stream<B>): Stream<Tuple<B, T>>
+    return other.sampledBy(this);
 
   public function skip(qt: Int) {
     if(qt < 0)
@@ -179,6 +246,30 @@ class Stream<T> {
       }).run();
     });
   }
+
+  public function skipFirst()
+    return skip(1);
+
+  public function skipFromEnd(qt: Int) {
+    if(qt < 0)
+      qt = 0;
+    return Stream.create(function(o) {
+      var buffer = [];
+      message(function(msg) switch msg {
+        case Next(v):
+          buffer.push(v);
+          if(buffer.length == qt + 1)
+            o.next(buffer.shift());
+        case Error(err):
+          o.error(err);
+        case Done:
+          o.done();
+      }).run();
+    });
+  }
+
+  public function skipLast()
+    return skipFromEnd(1);
 
   public function skipUntil(predicate : T -> Bool): Stream<T>
     return filter((function() {
@@ -202,6 +293,25 @@ class Stream<T> {
             o.done();
           case Next(v):
             o.next(v);
+          case Error(err):
+            o.error(err);
+          case Done:
+            o.done();
+        }).run();
+      });
+  }
+
+  public function takeAt(index: Int) {
+    if(index < 0)
+      index = 0;
+    return Stream.create(function(o) {
+      var counter = 0;
+      message(function(msg) switch msg {
+          case Next(v) if(counter++ == index):
+            o.next(v);
+            o.done();
+          case Next(_):
+
           case Error(err):
             o.error(err);
           case Done:
@@ -502,9 +612,55 @@ class Stream<T> {
       }).run();
     });
 
+  // query
+  // TODO
+  // any
+  // all
+  // contains
+  // memberOf
+
   // async
 #if (js || flash)
   public function delayed(ms: Int): Stream<T>
     return delay(ms).flatMap(function(_) return this);
+
+  public function spaced(ms: Int): Stream<T>
+    return Stream.create(function(o) {
+      var start = Timer.time(),
+          buffer = [],
+          scheduled = false,
+          isDone = false;
+      function emit() {
+        // if(scheduled) return;
+        var now  = Timer.time(),
+            span = now - start;
+        start = now;
+        scheduled = false;
+        if(span >= ms) {
+          o.next(buffer.shift());
+          if(isDone && buffer.length == 0)
+            o.done();
+        }
+        if(buffer.length > 0) {
+          scheduled = true;
+          Timer.delay(emit, ms);
+        }
+      }
+      message(function(msg) switch msg {
+        case Next(v):
+          buffer.push(v);
+          if(!scheduled)
+            emit();
+        case Error(err):
+          o.error(err);
+        case Done if(buffer.length == 0):
+          o.done();
+        case Done:
+          isDone = true;
+      }).run();
+    });
+
+    public function debounce(ms: Int)
+      return StreamExtensions.TupleStreamExtensions.left(sampledBy(Stream.repeat(ms)));
 #end
 }

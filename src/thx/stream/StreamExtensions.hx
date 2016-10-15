@@ -2,9 +2,11 @@ package thx.stream;
 
 using thx.promise.Promise;
 using thx.Nil;
+using thx.Options;
 using thx.Tuple;
 using thx.Unit;
 import haxe.ds.Option;
+import haxe.ds.Either;
 
 class StreamExtensions {
   public static function count<T>(stream: Stream<T>): Stream<Int>
@@ -14,7 +16,7 @@ class StreamExtensions {
     return stream.flatMap(function(v) return v);
 
   public static function toOption<T>(stream: Stream<T>): Stream<Option<T>>
-    return stream.map(function(v) return null == v ? None : Some(v));
+    return stream.map(function(v) return null == v ? None: Some(v));
 
   public static function toNil<T>(stream: Stream<T>): Stream<Nil>
     return stream.map(function(_) return Nil.nil);
@@ -25,11 +27,14 @@ class StreamExtensions {
   public static function toFalse<T>(stream: Stream<T>): Stream<Bool>
     return stream.map(function(_) return false);
 
-  public static function toValue<A, B>(stream: Stream<A>, value : B): Stream<B>
+  public static function toValue<A, B>(stream: Stream<A>, value: B): Stream<B>
     return stream.map(function(_) return value);
 
   public static function withIndex<T>(stream: Stream<T>, ?start: Int = 0): Stream<Tuple<Int, T>>
     return stream.map(function(v) return Tuple.of(start++, v));
+
+  public static function withTimestamp<T>(stream: Stream<T>, ?start: Int = 0): Stream<Tuple<Float, T>>
+    return stream.map(function(v) return Tuple.of(thx.Timer.time(), v));
 
   public static function nil<T>(stream: Stream<T>): Stream<Nil>
     return stream.map(function(_) return Nil.nil);
@@ -46,6 +51,29 @@ class UnitStreamExtensions {
 class NilStreamExtensions {
   public static function withIndex(stream: Stream<Nil>, ?start: Int = 0): Stream<Int>
     return stream.map(function(_) return start++);
+}
+
+class StringStreamExtensions {
+  public static function uniqueString(stream: Stream<String>): Stream<String>
+    return stream.unique(Set.createString());
+
+  public static function notEmpty(stream: Stream<String>): Stream<String>
+    return stream.filter(function(v) return v != null && v != "");
+
+  public static function match(stream: Stream<String>, pattern: EReg): Stream<String>
+    return stream.filter(function(s) return pattern.match(s));
+
+  public static function toBool(stream: Stream<String>): Stream<Bool>
+    return stream.map(function(s) return s != null && s != "");
+
+  public static function truthy(stream: Stream<String>): Stream<String>
+    return stream.filter(function(s) return s != null && s != "");
+
+  public static function falsy(stream: Stream<String>): Stream<String>
+    return stream.filter(function(s) return s == null || s == "");
+
+  public static function join(stream: Stream<String>, sep: String): Stream<String>
+    return stream.reduce(function(acc, v) return acc + sep + v, "");
 }
 
 class FloatStreamExtensions {
@@ -73,14 +101,24 @@ class FloatStreamExtensions {
             o.done();
         }).run();
     });
-}
 
-class StringStreamExtensions {
-  public static function uniqueString(stream: Stream<String>): Stream<String>
-    return stream.unique(Set.createString());
+  public static function greaterThan(stream: Stream<Float>, x: Float): Stream<Float>
+    return stream.filter(function(v) return v > x);
 
-  public static function notEmpty(stream: Stream<String>): Stream<String>
-    return stream.filter(function(v) return v != null && v != "");
+  public static function greaterThanOrEqualTo(stream: Stream<Float>, x: Float): Stream<Float>
+    return stream.filter(function(v) return v >= x);
+
+  public static function inRange(stream: Stream<Float>, min: Float, max: Float): Stream<Float>
+    return stream.filter(function(v) return v <= max && v >= min);
+
+  public static function insideRange(stream: Stream<Float>, min: Float, max: Float): Stream<Float>
+    return stream.filter(function(v) return v < max && v > min);
+
+  public static function lessThan(stream: Stream<Float>, x: Float): Stream<Float>
+    return stream.filter(function(v) return v < x);
+
+  public static function lessThanOrEqualTo(stream: Stream<Float>, x: Float): Stream<Float>
+    return stream.filter(function(v) return v <= x);
 }
 
 class IntStreamExtensions {
@@ -98,19 +136,46 @@ class IntStreamExtensions {
 
   public static function average(stream: Stream<Int>): Stream<Float>
     return FloatStreamExtensions.average(cast stream); // TODO do I really need to map?
+
+  public static function greaterThan(stream: Stream<Int>, x: Int): Stream<Int>
+    return stream.filter(function(v) return v > x);
+
+  public static function greaterThanOrEqualTo(stream: Stream<Int>, x: Int): Stream<Int>
+    return stream.filter(function(v) return v >= x);
+
+  public static function inRange(stream: Stream<Int>, min: Int, max: Int): Stream<Int>
+    return stream.filter(function(v) return v <= max && v >= min);
+
+  public static function insideRange(stream: Stream<Int>, min: Int, max: Int): Stream<Int>
+    return stream.filter(function(v) return v < max && v > min);
+
+  public static function lessThan(stream: Stream<Int>, x: Int): Stream<Int>
+    return stream.filter(function(v) return v < x);
+
+  public static function lessThanOrEqualTo(stream: Stream<Int>, x: Int): Stream<Int>
+    return stream.filter(function(v) return v <= x);
+
+  public static function toBool(stream: Stream<Int>): Stream<Bool>
+    return stream.map(function(i) return i != 0);
+}
+
+class BoolStreamExtensions {
+  public static function keepTrue(stream: Stream<Bool>): Stream<Bool>
+    return stream.filter(function(v) return v);
+
+  public static function negate(stream: Stream<Bool>): Stream<Bool>
+    return stream.map(function(v) return !v);
 }
 
 class OptionStreamExtensions {
   public static function filterOption<T>(stream: Stream<Option<T>>): Stream<T>
-    return stream
-      .filter(function(o) return switch o {
-        case Some(_): true;
-        case None: false;
-      })
-      .map(function(o) return switch o {
-        case Some(v): v;
-        case None: throw new thx.Error('should never happen');
-      });
+    return stream.filterMap(function(v) return v);
+
+  public static function toBool<T>(stream: Stream<Option<T>>): Stream<Bool>
+    return stream.map(function(opt) return opt.toBool());
+
+  public static function toValue<T>(stream: Stream<Option<T>>): Stream<Null<T>>
+    return stream.map(function(opt) return opt.get());
 }
 
 class TupleStreamExtensions {
@@ -142,198 +207,17 @@ class PromiseStreamExtensions {
 
   public static function flatten<T>(stream: Stream<Promise<T>>): Stream<T>
     return stream.flatMap(function(p) return PromiseStreamExtensions.toStream(p));
-/*
+}
 
-  public static function filterFuture(f : T -> Future<Bool>) : Emitter<T>
-    return new Emitter(function(stream) {
-      var queue : Array<Option<StreamValue<T>>> = [],
-          pos = 0;
-
-      function poll() {
-        while(queue[pos] != null) {
-          var r = queue[pos];
-          queue[pos++] = null;
-          switch r {
-            case Some(Pulse(v)):   stream.pulse(v);
-            case Some(End(true)):  stream.cancel();
-            case Some(End(false)): stream.end();
-            case None: //do nothing, it has been filtered out
-          };
-        }
-      }
-
-      function resolve(r : StreamValue<T>)
-        switch r {
-          case Pulse(v):
-            var index = queue.length;
-            queue.push(null);
-            f(v).then(function(c) {
-              if(c)
-                queue[index] = Some(r);
-              else
-                queue[index] = None;
-              poll();
-            });
-          case other:
-            queue.push(Some(other));
-            poll();
-        }
-
-      init(new Stream(resolve));
+class EitherStreamExtensions {
+  public static function left<A, B>(stream: Stream<Either<A, B>>): Stream<A>
+    return stream.filterMap(function(e) return switch e {
+      case Left(v): Some(v);
+      case Right(_): None;
     });
-
-  public static function filterPromise(f : T -> Promise<Bool>) : Emitter<T>
-    return filterFuture(function(v) {
-      return Future.create(function(resolve) {
-         f(v)
-          .success(resolve)
-          .throwFailure();
-      });
-    });
-
-*/
-}
-
-/*
-class EmitterStrings {
-  public static function match(emitter : Emitter<String>, pattern : EReg) : Emitter<String>
-    return emitter.filter(function(s) return pattern.match(s));
-
-  public static function toBool(emitter : Emitter<String>) : Emitter<Bool>
-    return emitter.map(function(s) return s != null && s != "");
-
-  public static function truthy(emitter : Emitter<String>) : Emitter<String>
-    return emitter.filter(function(s) return s != null && s != "");
-
-  public static function join(emitter : Emitter<String>, sep : String) : Emitter<String>
-    return emitter.reduce("", function(acc, v) return acc + sep + v);
-}
-
-class EmitterInts {
-  public static function greaterThan(emitter : Emitter<Int>, x : Int) : Emitter<Int>
-    return emitter.filter(function(v) return v > x);
-
-  public static function greaterThanOrEqualTo(emitter : Emitter<Int>, x : Int) : Emitter<Int>
-    return emitter.filter(function(v) return v >= x);
-
-  public static function inRange(emitter : Emitter<Int>, min : Int, max : Int) : Emitter<Int>
-    return emitter.filter(function(v) return v <= max && v >= min);
-
-  public static function insideRange(emitter : Emitter<Int>, min : Int, max : Int) : Emitter<Int>
-    return emitter.filter(function(v) return v < max && v > min);
-
-  public static function lessThan(emitter : Emitter<Int>, x : Int) : Emitter<Int>
-    return emitter.filter(function(v) return v < x);
-
-  public static function lessThanOrEqualTo(emitter : Emitter<Int>, x : Int) : Emitter<Int>
-    return emitter.filter(function(v) return v <= x);
-
-  public static function toBool(emitter : Emitter<Int>) : Emitter<Bool>
-    return emitter
-      .map(function(i) return i != 0);
-
-  public static function unique(emitter : Emitter<Int>) : Emitter<Int>
-    return emitter.filter((function() {
-      var buf = new Map<Int, Bool>();
-      return function(v) {
-        return if(buf.exists(v))
-          false;
-        else {
-          buf.set(v, true);
-          true;
-        }
-      };
-    })());
-}
-
-class EmitterFloats {
-  public static function greaterThan(emitter : Emitter<Float>, x : Float) : Emitter<Float>
-    return emitter.filter(function(v) return v > x);
-
-  public static function greaterThanOrEqualTo(emitter : Emitter<Float>, x : Float) : Emitter<Float>
-    return emitter.filter(function(v) return v >= x);
-
-  public static function inRange(emitter : Emitter<Float>, min : Float, max : Float) : Emitter<Float>
-    return emitter.filter(function(v) return v <= max && v >= min);
-
-  public static function insideRange(emitter : Emitter<Float>, min : Float, max : Float) : Emitter<Float>
-    return emitter.filter(function(v) return v < max && v > min);
-
-  public static function lessThan(emitter : Emitter<Float>, x : Float) : Emitter<Float>
-    return emitter.filter(function(v) return v < x);
-
-  public static function lessThanOrEqualTo(emitter : Emitter<Float>, x : Float) : Emitter<Float>
-    return emitter.filter(function(v) return v <= x);
-}
-
-class EmitterOptions {
-  public static function either<T>(emitter : Emitter<Option<T>>, ?some : T -> Void, ?none : Void -> Void, ?end : Bool -> Void) {
-    if(null == some) some = function(_) {};
-    if(null == none) none = function() {};
-    return emitter.subscribe(
-        function(o : Option<T>) switch o {
-          case Some(v) : some(v);
-          case None: none();
-        },
-        end
-      );
-  }
-
-  public static function filterOption<T>(emitter : Emitter<Option<T>>) : Emitter<T>
-    return emitter
-      .filter(function(opt) return opt.toBool())
-      // cast is required by C#
-      .map(function(opt) return (opt.get() : T));
-
-  public static function toBool<T>(emitter : Emitter<Option<T>>) : Emitter<Bool>
-    return emitter
-      .map(function(opt) return opt.toBool());
-
-  public static function toValue<T>(emitter : Emitter<Option<T>>) : Emitter<Null<T>>
-    return emitter
-      .map(function(opt) return opt.get());
-}
-
-class EmitterBools {
-  public static function negate(emitter : Emitter<Bool>)
-    return emitter.map(function(v) return !v);
-}
-
-@:access(thx.stream.Emitter)
-class EmitterEmitters {
-  // TODO: is flatMap the right name here?
-  public static function flatMap<T>(emitter : Emitter<Emitter<T>>) : Emitter<T>
-    return new Emitter(function(stream) {
-      emitter.init(new Stream(function(r : StreamValue<Emitter<T>>) {
-        switch r {
-          case Pulse(em):  em.init(stream);
-          case End(true):  stream.cancel();
-          case End(false): stream.end();
-        }}));
+  public static function right<A, B>(stream: Stream<Either<A, B>>): Stream<B>
+    return stream.filterMap(function(e) return switch e {
+      case Left(_): None;
+      case Right(v): Some(v);
     });
 }
-
-@:access(thx.stream.Emitter)
-class EmitterArrays {
-  public static function containerOf<T>(emitter : Emitter<Array<T>>, value : T) : Emitter<Array<T>>
-    return emitter.filter(function(arr) return arr.indexOf(value) >= 0);
-
-  public static function flatten<T>(emitter : Emitter<Array<T>>) : Emitter<T>
-    return new Emitter(function(stream) {
-      emitter.init(new Stream(function(r : StreamValue<Array<T>>) {
-        switch r {
-          case Pulse(arr): arr.map(stream.pulse);
-          case End(true):  stream.cancel();
-          case End(false): stream.end();
-        }}));
-    });
-}
-
-class EmitterValues {
-  public static function left<TLeft, TRight>(emitter : Emitter<Tuple2<TLeft, TRight>>) : Emitter<TLeft>
-    return emitter.map(function(v) return v._0);
-
-  public static function right<TLeft, TRight>(emitter : Emitter<Tuple2<TLeft, TRight>>) : Emitter<TRight>
-    return emitter.map(function(v) return v._1);
-}
-*/
