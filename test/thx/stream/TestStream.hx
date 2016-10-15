@@ -1,23 +1,38 @@
 package thx.stream;
 
-class TestStream extends Test {
-  public function testBasics() {
-    var stream = new Stream(assertExpectations([1,2]));
-    stream.pulse(1);
-    stream.pulse(2);
-    stream.end();
+import utest.Assert;
+using thx.stream.TestStream;
+
+class TestStream {
+  public static function assertSame<T>(stream: Stream<T>, expected: Array<Message<T>>, ?pos: haxe.PosInfos) {
+    var collect = [];
+    stream
+      // .logMessage("assert")
+      .message(collect.push)
+      .always(function() Assert.same(expected, collect, 'expected ${expected} but got ${collect}', pos))
+      .always(Assert.createAsync())
+      .run();
   }
 
-  public function testExtraPulse() {
-    var stream = new Stream(assertExpectations([1]));
-    stream.pulse(1);
-    stream.end();
-    stream.pulse(2);
+  public static function assertValues<T>(stream: Stream<T>, expected: Array<T>, ?pos: haxe.PosInfos) {
+    assertSame(stream, expected.map(thx.stream.Message.Next).concat([Done]), pos);
   }
 
-  public function testExtraEnd() {
-    var stream = new Stream(assertExpectations([]));
-    stream.end();
-    stream.end();
+  public static function assertCheck<T>(stream: Stream<T>, check: Array<Message<T>> -> Bool, ?pos: haxe.PosInfos) {
+    var collect = [];
+    stream
+      .message(collect.push)
+      .always(function() Assert.isTrue(check(collect), 'failed check on ${collect}', pos))
+      .always(Assert.createAsync())
+      .run();
+  }
+
+  public static function assertCheckValues<T>(stream: Stream<T>, check: Array<T> -> Bool, ?pos: haxe.PosInfos) {
+    var collect = [];
+    stream
+      .next(collect.push)
+      .always(function() Assert.isTrue(check(collect), 'failed check on ${collect}', pos))
+      .always(Assert.createAsync())
+      .run();
   }
 }
