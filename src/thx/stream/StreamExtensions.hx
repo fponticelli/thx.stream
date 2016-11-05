@@ -41,6 +41,12 @@ class StreamExtensions {
 
   public static function notNull<T>(stream: Stream<Null<T>>): Stream<T>
     return stream.filter(function(v) return v != null);
+
+  public static function mapTo<T, TIn>(stream: Stream<TIn>, const: T): Stream<T>
+    return stream.map(function(_) return const);
+
+  public static function startWith<T>(stream: Stream<T>, const: T): Stream<T>
+    return Stream.value(const).concat(stream);
 }
 
 class UnitStreamExtensions {
@@ -187,10 +193,10 @@ class TupleStreamExtensions {
 
 class ArrayStreamExtensions {
   public static function toStream<T>(a: Array<T>): Stream<T>
-    return Stream.ofValues(a);
+    return Stream.values(a);
 
   public static function flatten<T>(stream: Stream<Array<T>>): Stream<T>
-    return stream.flatMap(function(v) return Stream.ofValues(v));
+    return stream.flatMap(function(v) return Stream.values(v));
 }
 
 class PromiseArrayStreamExtensions {

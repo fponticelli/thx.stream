@@ -14,21 +14,23 @@ import thx.Timer;
 
 class Stream<T> {
   // constructors
-  public static function ofValue<T>(value: T): Stream<T>
+  public static function value<T>(value: T): Stream<T>
     return create(function(o) {
       o.next(value);
       o.done();
     });
   public static function empty<T>(): Stream<T>
     return create(function(o) o.done());
-  // TODO fail for Error(String)
-  // TODO error for Error(String) (collides with error the handler)
-  public static function ofValues<T>(values: ReadonlyArray<T>): Stream<T>
+  public static function error<T>(err: Error): Stream<T>
+    return create(function(o) o.error(err));
+  public static function fail<T>(msg: String, ?pos: haxe.PosInfos): Stream<T>
+    return error(new Error(msg, pos));
+  public static function values<T>(values: ReadonlyArray<T>): Stream<T>
     return create(function(o) {
       values.each(o.next);
       o.done();
     });
-  public static function ofIterator<T>(values: Iterator<T>): Stream<T>
+  public static function iterator<T>(values: Iterator<T>): Stream<T>
     return create(function(o) {
       for(v in values) o.next(v);
       o.done();
@@ -120,7 +122,7 @@ class Stream<T> {
     return new Process(handler, init);
   public function next(handler: T -> Void): Process<T>
     return new Process(Process.nextAsMessageHandler(handler), init);
-  public function error(handler: Error -> Void): Process<T>
+  public function failure(handler: Error -> Void): Process<T>
     return new Process(Process.errorAsMessageHandler(handler), init);
   public function done(handler: Void -> Void): Process<T>
     return new Process(Process.doneAsMessageHandler(handler), init);
@@ -158,7 +160,6 @@ class Stream<T> {
   public function filterFuture(predicate: T -> Future<Bool>)
     return filterPromise(function(v) return Promise.create(function(resolve, _) predicate(v).then(resolve)));
 
-  // TODO should this ensure that sequence is not affected?
   public function filterPromise(predicate: T -> Promise<Bool>)
     return Stream.create(function(o) {
       message(function(msg) switch msg {
@@ -179,7 +180,6 @@ class Stream<T> {
   public function filterMapFuture<B>(predicate: T -> Future<Option<B>>): Stream<B>
     return filterMapPromise(function(v) return Promise.create(function(resolve, _) predicate(v).then(resolve)));
 
-  // TODO should this ensure that sequence is not affected?
   public function filterMapPromise<B>(predicate: T -> Promise<Option<B>>): Stream<B>
     return Stream.create(function(o) {
       message(function(msg) switch msg {
@@ -288,11 +288,16 @@ class Stream<T> {
       qt = 0;
     return Stream.create(function(o) {
       var counter = 0;
+      if(qt == counter) {
+        o.done();
+        return;
+      }
+
       message(function(msg) switch msg {
-          case Next(_) if(counter++ == qt):
-            o.done();
           case Next(v):
             o.next(v);
+            if(++counter == qt)
+              o.done();
           case Error(err):
             o.error(err);
           case Done:
@@ -432,7 +437,7 @@ class Stream<T> {
     });
 
   public function map<B>(handler: T -> B): Stream<B>
-    return flatMap(function(v) return Stream.ofValue(handler(v)));
+    return flatMap(function(v) return Stream.value(handler(v)));
 
   public function effect(handler: T -> Void): Stream<T>
     return map(function(v) {
@@ -611,13 +616,6 @@ class Stream<T> {
             rdone = true;
       }).run();
     });
-
-  // query
-  // TODO
-  // any
-  // all
-  // contains
-  // memberOf
 
   // async
 #if (js || flash)

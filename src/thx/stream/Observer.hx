@@ -20,7 +20,7 @@ class Observer<T> {
   public function done(): Observer<T>
     return message(Done);
 
-  // ensures that no messages are delivered after Done or Error()
+  // ensure that no messages are delivered after Done or Error()
   public static function wrapHandler<T>(handler: Message<T> -> Void) {
     var terminated = false;
     return function(msg: Message<T>): Void {

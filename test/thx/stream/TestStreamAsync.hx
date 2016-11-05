@@ -22,7 +22,7 @@ class TestStreamAsync {
   public function testDelayed() {
     var before = true;
     Stream
-      .ofValue(1)
+      .value(1)
       .delayed(5)
       .effect(function(_) Assert.isFalse(before))
       .assertValues([1]);
@@ -54,7 +54,7 @@ class TestStreamAsync {
   public function testSpaced() {
     var before = true;
     Stream
-      .ofValues([1,2,3,4,5])
+      .values([1,2,3,4,5])
       .spaced(10)
       .skipFirst()
       .effect(function(_) Assert.isFalse(before))
@@ -65,7 +65,7 @@ class TestStreamAsync {
   public function testDebounce() {
     var before = true;
     Stream
-      .ofValues([1,2,3,4,5])
+      .values([1,2,3,4,5])
       .debounce(10)
       .effect(function(_) Assert.isFalse(before))
       .assertValues([5]);
