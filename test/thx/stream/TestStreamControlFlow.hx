@@ -10,7 +10,7 @@ class TestStreamControlFlow {
     var canceled = false;
     var done = Assert.createAsync();
     var err = new Error("meh");
-    Stream.ofValues([1,2,3])
+    Stream.values([1,2,3])
       .next(function(value) {
         throw err;
       })

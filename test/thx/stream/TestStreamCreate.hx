@@ -28,7 +28,7 @@ class TestStreamCreate {
   }
 
   public function testOfValues() {
-    Stream.ofValues([0,1,2]).assertValues([0,1,2]);
-    Stream.ofIterator(0...3).assertValues([0,1,2]);
+    Stream.values([0,1,2]).assertValues([0,1,2]);
+    Stream.iterator(0...3).assertValues([0,1,2]);
   }
 }
