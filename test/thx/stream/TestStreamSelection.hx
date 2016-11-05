@@ -73,6 +73,24 @@ class TestStreamSelection {
       .assertValues([3]);
   }
 
+  public function testTake0() {
+    Stream.values([1,2,3,4,5])
+      .take(0)
+      .assertValues([]);
+  }
+
+  public function testTake1() {
+    Stream.values([1,2,3,4,5])
+      .take(1)
+      .assertValues([1]);
+  }
+
+  public function testTake2() {
+    Stream.values([1,2,3,4,5])
+      .take(2)
+      .assertValues([1,2]);
+  }
+
   public function testWindow() {
     Stream.values([1,2,3,4,5,6,7])
       .window(2)

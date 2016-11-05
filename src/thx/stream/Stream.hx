@@ -288,11 +288,16 @@ class Stream<T> {
       qt = 0;
     return Stream.create(function(o) {
       var counter = 0;
+      if(qt == counter) {
+        o.done();
+        return;
+      }
+
       message(function(msg) switch msg {
-          case Next(_) if(counter++ == qt):
-            o.done();
           case Next(v):
             o.next(v);
+            if(++counter == qt)
+              o.done();
           case Error(err):
             o.error(err);
           case Done:

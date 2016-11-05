@@ -10,13 +10,12 @@ class TestAll {
 #if (js || swf)
     runner.addCase(new TestStreamAsync());
 #end
+    runner.addCase(new TestProperty());
     runner.addCase(new TestStreamCombination());
     runner.addCase(new TestStreamControlFlow());
     runner.addCase(new TestStreamCreate());
     runner.addCase(new TestStreamSelection());
     runner.addCase(new TestStreamTransform());
-
-    // runner.addCase(new TestProperty());
     Report.create(runner);
     runner.run();
   }
