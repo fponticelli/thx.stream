@@ -448,6 +448,9 @@ class Stream<T> {
   public function reduce<Acc>(handler: Acc -> T -> Acc, acc: Acc): Stream<Acc>
     return map(function(v) return acc = handler(acc, v));
 
+  public function scan<Acc>(acc: Acc, handler: Acc -> T -> Acc): Stream<Acc>
+    return reduce(handler, acc);
+
   public function fold(handler: T -> T -> T): Stream<T>
     return Stream.create(function(o) {
       var acc = None;

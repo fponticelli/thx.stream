@@ -1,8 +1,7 @@
 package thx.stream;
 
 class Property<T> {
-  public var value(default, null): T;
-
+  var value: T;
   var equals: T -> T -> Bool;
   var emitters: Array<T -> Void>;
 
@@ -12,18 +11,25 @@ class Property<T> {
     set(initial);
   }
 
-  public function set(value: T) {
-    if(equals(this.value, value))
+  public function modify(f: T -> T) {
+    var newValue = f(value);
+    if(equals(value, newValue))
       return;
-    this.value = value;
-    emit(value);
+    value = newValue;
+    emit(newValue);
   }
 
-  function emit(value: T) {
+  public function get(): T
+    return value;
+
+  public function set(value: T)
+    modify(function(_) return value);
+
+  function emit(value: T)
     for(e in emitters)
       e(value);
-  }
-  public function stream(): Stream<T> {
+
+  public function stream(): Stream<T>
     return Stream.cancellable(function(o, addCancel) {
       var e = o.next;
       emitters.push(e);
@@ -32,5 +38,4 @@ class Property<T> {
         emitters.remove(e);
       });
     });
-  }
 }

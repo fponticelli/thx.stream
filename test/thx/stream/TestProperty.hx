@@ -10,8 +10,7 @@ class TestProperty {
   public function testProperty() {
     var collect = [];
     var prop = new Property(1);
-    trace(prop.value);
-    Assert.equals(1, prop.value);
+    Assert.equals(1, prop.get());
     prop.stream()
       .log('value')
       .first()
