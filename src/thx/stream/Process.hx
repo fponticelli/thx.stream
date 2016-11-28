@@ -2,12 +2,13 @@ package thx.stream;
 
 import thx.Error;
 using thx.Functions;
+using thx.stream.Observer;
 
 class Process<T> {
   var handler: Message<T> -> Void;
   var init: (Message<T> -> Void) -> (Void -> Void);
   public function new(handler: Message<T> -> Void, init: (Message<T> -> Void) -> (Void -> Void)) {
-    this.handler = Observer.wrapHandler(handler);
+    this.handler = Observers.wrapHandler(handler);
     this.init = init;
   }
 

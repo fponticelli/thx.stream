@@ -5,6 +5,7 @@ using thx.Nil;
 using thx.Options;
 using thx.Tuple;
 using thx.Unit;
+using thx.stream.Observer;
 import haxe.ds.Option;
 import haxe.ds.Either;
 

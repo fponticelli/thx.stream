@@ -1,5 +1,7 @@
 package thx.stream;
 
+using thx.stream.Observer;
+
 class Property<T> {
   var value: T;
   var equals: T -> T -> Bool;

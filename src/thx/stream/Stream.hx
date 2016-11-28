@@ -1,6 +1,7 @@
 package thx.stream;
 
 import thx.Error;
+using thx.stream.Observer;
 import thx.stream.Process;
 import haxe.ds.Option;
 using thx.Functions;
@@ -42,9 +43,13 @@ class Stream<T> {
       return function() {};
     });
 
+  // public static function observe<T>(observer: Observer<T>): Stream<T> {
+  //
+  // }
+
   public static function cancellable<T>(init: Observer<T> -> ((Void -> Void) -> Void) -> Void): Stream<T>
     return new Stream(function(handler) {
-      var o = new Observer(handler),
+      var o = new ObserverF(handler),
           cancel = Functions.noop;
 
       function addCancel(newcancel: Void -> Void) {
