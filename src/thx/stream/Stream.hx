@@ -43,10 +43,6 @@ class Stream<T> {
       return function() {};
     });
 
-  // public static function observe<T>(observer: Observer<T>): Stream<T> {
-  //
-  // }
-
   public static function cancellable<T>(init: Observer<T> -> ((Void -> Void) -> Void) -> Void): Stream<T>
     return new Stream(function(handler) {
       var o = new ObserverF(handler),
@@ -128,7 +124,7 @@ class Stream<T> {
   public function next(handler: T -> Void): Process<T>
     return new Process(Process.nextAsMessageHandler(handler), init);
   public function failure(handler: Error -> Void): Process<T>
-    return new Process(Process.errorAsMessageHandler(handler), init);
+    return new Process(Process.failureAsMessageHandler(handler), init);
   public function done(handler: Void -> Void): Process<T>
     return new Process(Process.doneAsMessageHandler(handler), init);
   public function always(handler: Void -> Void): Process<T>
@@ -431,7 +427,7 @@ class Stream<T> {
         case Next(v):
           handler(v)
             .next(o.next)
-            .error(o.error)
+            .failure(o.error)
             // don't pass Done from the sub-stream
             .run();
         case Error(err):

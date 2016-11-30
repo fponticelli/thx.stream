@@ -11,6 +11,7 @@ class TestAll {
     runner.addCase(new TestStreamAsync());
 #end
     runner.addCase(new TestProperty());
+    runner.addCase(new TestStore());
     runner.addCase(new TestStreamCombination());
     runner.addCase(new TestStreamControlFlow());
     runner.addCase(new TestStreamCreate());

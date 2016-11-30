@@ -18,6 +18,10 @@ class TestStream {
     assertSame(stream, expected.map(thx.stream.Message.Next).concat([Done]), pos);
   }
 
+  public static function assertFirstValues<T>(stream: Stream<T>, expected: Array<T>, ?pos: haxe.PosInfos) {
+    assertSame(stream.take(expected.length), expected.map(thx.stream.Message.Next).concat([Done]), pos);
+  }
+
   public static function assertCheck<T>(stream: Stream<T>, check: Array<Message<T>> -> Bool, ?pos: haxe.PosInfos) {
     var collect = [];
     stream

@@ -16,8 +16,8 @@ class Process<T> {
     return new Process(this.handler.join(handler), init);
   public function next(handler: T -> Void): Process<T>
     return new Process(this.handler.join(nextAsMessageHandler(handler)), init);
-  public function error(handler: Error -> Void): Process<T>
-    return new Process(this.handler.join(errorAsMessageHandler(handler)), init);
+  public function failure(handler: Error -> Void): Process<T>
+    return new Process(this.handler.join(failureAsMessageHandler(handler)), init);
   public function done(handler: Void -> Void): Process<T>
     return new Process(this.handler.join(doneAsMessageHandler(handler)), init);
   public function always(handler: Void -> Void): Process<T>
@@ -32,7 +32,7 @@ class Process<T> {
       case _:
     };
 
-  public static function errorAsMessageHandler<T>(handler: Error -> Void)
+  public static function failureAsMessageHandler<T>(handler: Error -> Void)
     return function(m: Message<T>) switch m {
       case Error(err): handler(err);
       case _:

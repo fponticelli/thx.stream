@@ -15,7 +15,7 @@ class TestStreamControlFlow {
       .next(function(value) {
         throw err;
       })
-      .error(function(e) {
+      .failure(function(e) {
         Assert.equals(err, e);
         done();
       })

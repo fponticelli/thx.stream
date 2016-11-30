@@ -5,11 +5,11 @@ using thx.stream.Observer;
 class Property<T> {
   var value: T;
   var equals: T -> T -> Bool;
-  var emitters: Array<T -> Void>;
+  var observers: Array<Observer<T>>;
 
   public function new(initial: T, ?equals: T -> T -> Bool) {
     this.equals = null == equals ? Functions.equality : equals;
-    this.emitters = [];
+    this.observers = [];
     set(initial);
   }
 
@@ -18,7 +18,7 @@ class Property<T> {
     if(equals(value, newValue))
       return;
     value = newValue;
-    emit(newValue);
+    emit(Next(newValue));
   }
 
   public function get(): T
@@ -27,17 +27,19 @@ class Property<T> {
   public function set(value: T)
     modify(function(_) return value);
 
-  function emit(value: T)
-    for(e in emitters)
-      e(value);
+  public function error(err: thx.Error)
+    emit(Error(err));
+
+  function emit(value: Message<T>)
+    for(o in observers)
+      o.message(value);
 
   public function stream(): Stream<T>
     return Stream.cancellable(function(o, addCancel) {
-      var e = o.next;
-      emitters.push(e);
-      e(value);
+      observers.push(o);
       addCancel(function() {
-        emitters.remove(e);
+        observers.remove(o);
       });
+      o.message(Next(value));
     });
 }

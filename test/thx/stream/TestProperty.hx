@@ -12,7 +12,6 @@ class TestProperty {
     var prop = new Property(1);
     Assert.equals(1, prop.get());
     prop.stream()
-      .log('value')
       .first()
       .assertValues([1]);
   }
