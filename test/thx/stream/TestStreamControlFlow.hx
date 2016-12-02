@@ -2,7 +2,7 @@ package thx.stream;
 
 import utest.Assert;
 using thx.stream.TestStream;
-using thx.stream.Observer;
+using thx.stream.Subject;
 
 class TestStreamControlFlow {
   public function new() {}

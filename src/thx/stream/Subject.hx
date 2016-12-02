@@ -3,29 +3,29 @@ package thx.stream;
 import thx.Error;
 using thx.Functions;
 
-class ObserverF<T> implements Observer<T> {
+class SubjectF<T> implements Subject<T> {
   var handler: Message<T> -> Void;
   public function new(handler: Message<T> -> Void) {
     this.handler = handler;
   }
 
-  public function message(msg: Message<T>): Observer<T> {
+  public function message(msg: Message<T>): Subject<T> {
     handler(msg);
     return this;
   }
 }
 
-interface Observer<T> {
-  public function message(msg: Message<T>): Observer<T>;
+interface Subject<T> {
+  public function message(msg: Message<T>): Subject<T>;
 }
 
-class Observers {
-  inline public static function next<T>(observer: Observer<T>, v: T): Observer<T>
-    return observer.message(Next(v));
-  inline public static function error<T>(observer: Observer<T>, err: Error): Observer<T>
-    return observer.message(Error(err));
-  inline public static function done<T>(observer: Observer<T>): Observer<T>
-    return observer.message(Done);
+class Subjects {
+  inline public static function next<T>(subject: Subject<T>, v: T): Subject<T>
+    return subject.message(Next(v));
+  inline public static function error<T>(subject: Subject<T>, err: Error): Subject<T>
+    return subject.message(Error(err));
+  inline public static function done<T>(subject: Subject<T>): Subject<T>
+    return subject.message(Done);
 
   // ensure that no messages are delivered after Done or Error()
   public static function wrapHandler<T>(handler: Message<T> -> Void) {

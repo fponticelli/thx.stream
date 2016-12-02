@@ -1,15 +1,15 @@
 package thx.stream;
 
-using thx.stream.Observer;
+using thx.stream.Subject;
 
 class Property<T> {
   var value: T;
   var equals: T -> T -> Bool;
-  var observers: Array<Observer<T>>;
+  var subjects: Array<Subject<T>>;
 
   public function new(initial: T, ?equals: T -> T -> Bool) {
     this.equals = null == equals ? Functions.equality : equals;
-    this.observers = [];
+    this.subjects = [];
     set(initial);
   }
 
@@ -31,14 +31,14 @@ class Property<T> {
     emit(Error(err));
 
   function emit(value: Message<T>)
-    for(o in observers)
+    for(o in subjects)
       o.message(value);
 
   public function stream(): Stream<T>
     return Stream.cancellable(function(o, addCancel) {
-      observers.push(o);
+      subjects.push(o);
       addCancel(function() {
-        observers.remove(o);
+        subjects.remove(o);
       });
       o.message(Next(value));
     });

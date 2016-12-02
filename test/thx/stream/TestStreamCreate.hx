@@ -4,7 +4,7 @@ import utest.Assert;
 using thx.Iterators;
 using thx.Functions;
 using thx.stream.TestStream;
-using thx.stream.Observer;
+using thx.stream.Subject;
 
 class TestStreamCreate {
   public function new() {}
