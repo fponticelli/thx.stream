@@ -13,12 +13,12 @@ class Store<State, Action> {
     this.middleware = null != middleware ? middleware : function(_, _) return Promise.value([]);
   }
 
-  public function apply(action: Action, ?pos: haxe.PosInfos) {
+  public function dispatch(action: Action, ?pos: haxe.PosInfos) {
     try {
       var newValue = reducer(get(), action);
       property.set(newValue);
       middleware(property.get(), action)
-        .success(function(actions) actions.map(apply.bind(_, pos)))
+        .success(function(actions) actions.map(dispatch.bind(_, pos)))
         .failure(property.error);
     } catch(e: Dynamic) {
       property.error(thx.Error.fromDynamic(e, pos));

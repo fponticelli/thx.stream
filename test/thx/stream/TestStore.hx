@@ -11,11 +11,11 @@ class TestStore {
   public function testStore() {
     var store = new Store(reducer, 1);
     Assert.equals(1, store.get());
-    store.apply(Increment);
+    store.dispatch(Increment);
     Assert.equals(2, store.get());
-    store.apply(Decrement);
+    store.dispatch(Decrement);
     Assert.equals(1, store.get());
-    store.apply(SetTo(0));
+    store.dispatch(SetTo(0));
     Assert.equals(0, store.get());
   }
 
@@ -32,8 +32,8 @@ class TestStore {
       .stream()
       .assertFirstValues([0,1,3]);
     store
-      .apply(Increment)
-      .apply(SetTo(3));
+      .dispatch(Increment)
+      .dispatch(SetTo(3));
   }
 
   public function testMiddleware() {
@@ -42,7 +42,7 @@ class TestStore {
       .stream()
       .assertFirstValues([0,1,10]);
     store
-      .apply(Increment);
+      .dispatch(Increment);
   }
 
   public function reducer(state: Int, message: TestStoreMessage) {
