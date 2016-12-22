@@ -64,6 +64,9 @@ abstract Middleware<State, Action>(MiddlewareF<State, Action>) from MiddlewareF<
   @:from
   public static function sideEffectAction<State, Action>(f: Action -> Void): Middleware<State, Action>
     return function(_: State, action: Action) { f(action); return Promise.value([]); };
+
+  public static function empty<State, Action>(): Middleware<State, Action>
+    return function(_: State, _: Action) return Promise.value([]);
 }
 
 typedef MiddlewareF<State, Action> = State -> Action -> Promise<Array<Action>>;

@@ -1,6 +1,7 @@
 package thx.stream;
 
 import utest.Assert;
+import thx.stream.Reducer;
 import thx.stream.Store;
 using thx.stream.TestStream;
 using thx.promise.Promise;
@@ -9,7 +10,7 @@ class TestStore {
   public function new() {}
 
   public function testStore() {
-    var store = new Store(reducer, 1);
+    var store = withReducer(1);
     Assert.equals(1, store.get());
     store.dispatch(Increment);
     Assert.equals(2, store.get());
@@ -20,14 +21,14 @@ class TestStore {
   }
 
   public function testStreamInitialValue() {
-    var store = new Store(reducer, 0);
+    var store = withReducer(0);
     store
       .stream()
       .assertFirstValues([0]);
   }
 
   public function testStream() {
-    var store = new Store(reducer, 0);
+    var store = withReducer(0);
     store
       .stream()
       .assertFirstValues([0,1,3]);
@@ -37,7 +38,7 @@ class TestStore {
   }
 
   public function testMiddleware() {
-    var store = new Store(reducer, middleware, 0);
+    var store = withMiddleware(0);
     store
       .stream()
       .assertFirstValues([0,1,10]);
@@ -58,6 +59,16 @@ class TestStore {
       case Increment: [SetTo(10)];
       case _: [];
     });
+  }
+
+  public function withReducer(initial) {
+    var prop = new Property(initial);
+    return new Store(prop, reducer, Middleware.empty());
+  }
+
+  public function withMiddleware(initial) {
+    var prop = new Property(initial);
+    return new Store(prop, reducer, middleware);
   }
 }
 

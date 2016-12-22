@@ -9,6 +9,7 @@ using thx.stream.Subject;
 class TestStreamCreate {
   public function new() {}
 
+#if !java
   public function testNew() {
     var stream = new Stream(function(l) {
       (0...3).forEach.fn(l(Next(_)));
@@ -18,6 +19,7 @@ class TestStreamCreate {
 
     stream.assertValues([0,1,2]);
   }
+#end
 
   public function testCreate() {
     var stream = Stream.create(function(o) {
