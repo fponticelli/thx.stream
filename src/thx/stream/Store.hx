@@ -26,6 +26,10 @@ class Store<State, Action> {
     return this;
   }
 
+  public function dispatcher(?pos: haxe.PosInfos) {
+    return dispatch.bind(_, pos);
+  }
+
   public function stream()
     return property.stream();
 

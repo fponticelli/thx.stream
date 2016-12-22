@@ -31,27 +31,39 @@ abstract Middleware<State, Action>(MiddlewareF<State, Action>) from MiddlewareF<
 
   @:from
   public static function withActionOnly<State, Action>(f: Action -> Promise<Array<Action>>): Middleware<State, Action>
-    return function(_: State, action) return f(action);
+    return function(_: State, action: Action) return f(action);
 
   @:from
   public static function withActionOnlyAndOneResult<State, Action>(f: Action -> Promise<Action>): Middleware<State, Action>
-    return function(_: State, action) return f(action).map(function(v) return [v]);
+    return function(_: State, action: Action) return f(action).map(function(v) return [v]);
 
   @:from
   public static function withActionOnlySync<State, Action>(f: Action -> Array<Action>): Middleware<State, Action>
-    return function(_: State, action) return Promise.value(f(action));
+    return function(_: State, action: Action) return Promise.value(f(action));
 
   @:from
   public static function withActionOnlyAndOneResultSync<State, Action>(f: Action -> Action): Middleware<State, Action>
-    return function(_: State, action) return Promise.value([f(action)]);
+    return function(_: State, action: Action) return Promise.value([f(action)]);
 
   @:from
   public static function withOneResult<State, Action>(f: State -> Action -> Promise<Action>): Middleware<State, Action>
-    return function(state: State, action) return f(state, action).map(function(v) return [v]);
+    return function(state: State, action: Action) return f(state, action).map(function(v) return [v]);
 
   @:from
   public static function sync<State, Action>(f: State -> Action -> Array<Action>): Middleware<State, Action>
-    return function(state: State, action) return Promise.value(f(state, action));
+    return function(state: State, action: Action) return Promise.value(f(state, action));
+
+  @:from
+  public static function sideEffectBoth<State, Action>(f: State -> Action -> Void): Middleware<State, Action>
+    return function(state: State, action: Action) { f(state, action); return Promise.value([]); };
+
+  @:from
+  public static function sideEffectState<State, Action>(f: State -> Void): Middleware<State, Action>
+    return function(state: State, _: Action) { f(state); return Promise.value([]); };
+
+  @:from
+  public static function sideEffectAction<State, Action>(f: Action -> Void): Middleware<State, Action>
+    return function(_: State, action: Action) { f(action); return Promise.value([]); };
 }
 
 typedef MiddlewareF<State, Action> = State -> Action -> Promise<Array<Action>>;
