@@ -73,8 +73,14 @@ class Stream<T> {
       addCancel(Timer.repeat(function() o.next(f()), ms));
     });
 
-  public static function delay(ms: Int): Stream<Unit>
-    return delayValue(ms, Unit.unit);
+  public static function delay<T>(ms: Int): Stream<T>
+    return Stream.cancellable(function(o, addCancel) {
+      addCancel(
+        Timer.delay(function() {
+          o.done();
+        }, ms)
+      );
+    });
 
   public static function delayValue<T>(ms: Int, value: T): Stream<T>
     return Stream.cancellable(function(o, addCancel) {
@@ -624,7 +630,7 @@ class Stream<T> {
   // async
 #if (js || flash)
   public function delayed(ms: Int): Stream<T>
-    return delay(ms).flatMap(function(_) return this);
+    return delay(ms).concat(this);
 
   public function spaced(ms: Int): Stream<T>
     return Stream.create(function(o) {

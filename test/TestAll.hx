@@ -7,11 +7,12 @@ import thx.stream.*;
 class TestAll {
   public static function main() {
     var runner = new Runner();
+    runner.addCase(new TestProperty());
+    runner.addCase(new TestStore());
+    // runner.addCase(new TestStream()); // this is not a test, just helper
 #if (js || swf)
     runner.addCase(new TestStreamAsync());
 #end
-    runner.addCase(new TestProperty());
-    runner.addCase(new TestStore());
     runner.addCase(new TestStreamCombination());
     runner.addCase(new TestStreamControlFlow());
     runner.addCase(new TestStreamCreate());
