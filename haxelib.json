@@ -5,8 +5,8 @@
   "classPath": "src",
   "tags": ["thx", "stream", "async", "cross"],
   "description": "Stream library for Haxe.",
-  "releasenote": "General improvements to Store and Reducer",
-  "version": "0.6.0",
+  "releasenote": "Fix delay and delayed functions",
+  "version": "0.6.1",
   "contributors": ["fponticelli"],
   "dependencies": {
     "thx.core": "",
