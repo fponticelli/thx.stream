@@ -1,5 +1,6 @@
 package thx.stream;
 
+using thx.Arrays;
 using thx.promise.Promise;
 import thx.stream.Reducer;
 
@@ -24,13 +25,11 @@ class Store<State, Action> {
     this.middleware = middleware;
   }
 
-  public function dispatch(action: Action, ?pos: haxe.PosInfos) {
+  public function dispatch(action: Action, ?pos: haxe.PosInfos): Store<State, Action> {
     try {
       var newValue = reducer(get(), action);
       property.set(newValue);
-      middleware(property.get(), action)
-        .success(function(actions) actions.map(dispatch.bind(_, pos)))
-        .failure(property.error);
+      middleware(property.get(), action, function(a) dispatch(a, pos));
     } catch(e: Dynamic) {
       property.error(thx.Error.fromDynamic(e, pos));
     }

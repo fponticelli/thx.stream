@@ -54,11 +54,11 @@ class TestStore {
     };
   }
 
-  public function middleware(message: TestStoreMessage): Promise<Array<TestStoreMessage>> {
-    return Promise.value(switch message {
-      case Increment: [SetTo(10)];
-      case _: [];
-    });
+  public function middleware(_, message: TestStoreMessage, f): Void {
+    switch message {
+      case Increment: f(SetTo(10));
+      case _:
+    };
   }
 
   public function withReducer(initial) {
