@@ -288,7 +288,7 @@ class Stream<T> {
           return false;
         return flag = true;
       };
-    }()));
+    })());
 
   public function take(qt: Int) {
     if(qt < 0)
@@ -340,7 +340,7 @@ class Stream<T> {
           return true;
         return flag = false;
       };
-    }()));
+    })());
 
   public function comp(compare: T -> T -> Bool): Stream<T>
     return Stream.create(function(o) {
