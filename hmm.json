@@ -1,0 +1,24 @@
+{
+  "dependencies": [
+    {
+      "name": "thx.core",
+      "type": "git",
+      "ref": "72e8663",
+      "url": "git@github.com:fponticelli/thx.core"
+    },
+    {
+      "name": "thx.promise",
+      "type": "git",
+      "dir": "src",
+      "ref": "a4e0ea6",
+      "url": "git@github.com:fponticelli/thx.promise"
+    },
+    {
+      "name": "utest",
+      "type": "git",
+      "dir": "src",
+      "ref": "0ee9c1a",
+      "url": "git@github.com:fponticelli/utest"
+    }
+  ]
+}

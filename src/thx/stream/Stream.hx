@@ -376,7 +376,7 @@ class Stream<T> {
     });
   }
 
-  public function last()
+  public function last<T>(): Stream<T>
     return Stream.create(function(o) {
       var last = None;
       message(function(msg) switch [msg, last] {
